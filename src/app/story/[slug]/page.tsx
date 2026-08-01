@@ -1,5 +1,6 @@
 import { ArticleCard } from "@/components/ArticleCard";
 import { Badge } from "@/components/Badge";
+import { MiniStoryMap } from "@/components/MiniStoryMap";
 import { ReadingProgress } from "@/components/ReadingProgress";
 import { Sidebar } from "@/components/Sidebar";
 import {
@@ -156,6 +157,20 @@ export default async function StoryPage({ params }: Props) {
               {article.city}, {article.country}
             </span>
           </div>
+
+          {Number.isFinite(article.lat) && Number.isFinite(article.lng) && (
+            <MiniStoryMap
+              className="mt-4"
+              lat={article.lat}
+              lng={article.lng}
+              city={article.city}
+              country={article.country}
+              regionId={article.region}
+              regionName={region?.name}
+              title={article.title}
+              articleSlug={article.slug}
+            />
+          )}
 
           <div className="relative mt-6 aspect-[16/9] overflow-hidden bg-news-soft dark:bg-white/5">
             <Image

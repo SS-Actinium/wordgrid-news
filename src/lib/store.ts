@@ -178,6 +178,42 @@ export async function listPublishedArticles(): Promise<Article[]> {
     .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt));
 }
 
+/**
+ * Cheap data-layer probe for health/LB checks.
+ * Does NOT parse or list articles (no dedupe, no seed write).
+ * Uses directory access + articles.json mtime/size when present.
+ */
+export async function probeDataLayer(): Promise<{
+  ok: boolean;
+  dataDir: string;
+  articlesFile: {
+    exists: boolean;
+    bytes: number | null;
+    mtime: string | null;
+  };
+}> {
+  await fs.access(DATA_DIR);
+  try {
+    const st = await fs.stat(ARTICLES_FILE);
+    return {
+      ok: true,
+      dataDir: DATA_DIR,
+      articlesFile: {
+        exists: true,
+        bytes: st.size,
+        mtime: st.mtime.toISOString(),
+      },
+    };
+  } catch {
+    // Missing file is fine — listAllArticles seeds on first real read
+    return {
+      ok: true,
+      dataDir: DATA_DIR,
+      articlesFile: { exists: false, bytes: null, mtime: null },
+    };
+  }
+}
+
 export async function getArticleById(id: string): Promise<Article | undefined> {
   const all = await listAllArticles();
   return all.find((a) => a.id === id);

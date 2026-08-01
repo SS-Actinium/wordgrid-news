@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 import type { Article, Category, Region } from "@/lib/types";
 
 export function SiteFooter({
@@ -32,23 +31,7 @@ export function SiteFooter({
           <p className="mt-3 text-xs leading-relaxed text-white/50">
             Global news on a world grid — every story has coordinates.
           </p>
-          <div className="mt-5 flex gap-2">
-            {[
-              { Icon: Facebook, label: "Facebook" },
-              { Icon: Twitter, label: "X / Twitter" },
-              { Icon: Instagram, label: "Instagram" },
-              { Icon: Youtube, label: "YouTube" },
-            ].map(({ Icon, label }) => (
-              <a
-                key={label}
-                href="#"
-                className="flex h-9 w-9 items-center justify-center bg-white/10 text-white transition hover:bg-news-red"
-                aria-label={label}
-              >
-                <Icon className="h-4 w-4" />
-              </a>
-            ))}
-          </div>
+          {/* Social icons omitted until real profile URLs are configured in settings */}
         </div>
 
         <div>
@@ -119,6 +102,9 @@ export function SiteFooter({
             © {new Date().getFullYear()} {siteName}. All rights reserved.
           </p>
           <div className="flex gap-4">
+            <Link href="/#live-world-grid" className="hover:text-white">
+              World map
+            </Link>
             <Link href="/about" className="hover:text-white">
               About
             </Link>

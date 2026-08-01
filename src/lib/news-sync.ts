@@ -1,9 +1,10 @@
 import { createHash } from "crypto";
 import Parser from "rss-parser";
 import { DEFAULT_IMAGE } from "./constants";
+import { inferGeoFromText } from "./geo";
 import { sanitizeContentBlocks, sanitizeHttpUrl } from "./sanitize";
 import { slugify, upsertAutoArticles, saveSettings, getSettings } from "./store";
-import type { Article, CategoryId, RegionId } from "./types";
+import type { Article, CategoryId } from "./types";
 
 /** Stable unique id from full URL/title (not truncated prefix — that caused collisions). */
 export function stableArticleId(seed: string): string {
@@ -51,15 +52,6 @@ export const NEWS_FEEDS = [
   },
 ] as const;
 
-const REGION_HINTS: { keys: string[]; region: RegionId; city: string; country: string; lat: number; lng: number }[] = [
-  { keys: ["ukraine", "russia", "moscow", "kyiv", "europe", "eu ", "britain", "uk ", "france", "germany", "berlin", "paris", "london", "brussels"], region: "europe", city: "London", country: "United Kingdom", lat: 51.5, lng: -0.12 },
-  { keys: ["china", "beijing", "tokyo", "japan", "india", "delhi", "seoul", "korea", "taiwan", "asia", "singapore", "jakarta", "philippines", "vietnam"], region: "asia", city: "Singapore", country: "Singapore", lat: 1.35, lng: 103.82 },
-  { keys: ["africa", "nigeria", "kenya", "nairobi", "south africa", "egypt", "ethiopia", "ghana"], region: "africa", city: "Nairobi", country: "Kenya", lat: -1.29, lng: 36.82 },
-  { keys: ["israel", "gaza", "iran", "iraq", "saudi", "uae", "middle east", "syria", "lebanon", "qatar"], region: "middle-east", city: "Dubai", country: "UAE", lat: 25.2, lng: 55.27 },
-  { keys: ["australia", "sydney", "zealand", "pacific", "oceania"], region: "oceania", city: "Sydney", country: "Australia", lat: -33.87, lng: 151.21 },
-  { keys: ["united states", "u.s.", "usa", "washington", "mexico", "brazil", "canada", "america", "latin"], region: "americas", city: "Washington", country: "United States", lat: 38.9, lng: -77.04 },
-];
-
 const CATEGORY_HINTS: { keys: string[]; category: CategoryId }[] = [
   { keys: ["ai ", "artificial intelligence", "tech", "software", "cyber", "chip", "semiconductor", "digital", "internet", "robot"], category: "technology" },
   { keys: ["climate", "carbon", "emission", "weather", "flood", "heat", "energy", "oil", "gas", "renewable", "environment"], category: "climate" },
@@ -69,28 +61,6 @@ const CATEGORY_HINTS: { keys: string[]; category: CategoryId }[] = [
   { keys: ["film", "music", "culture", "sport", "olympic", "celebrity", "art"], category: "culture" },
   { keys: ["election", "president", "minister", "parliament", "vote", "diplomacy", "sanction", "policy", "government"], category: "politics" },
 ];
-
-function inferRegion(text: string) {
-  const t = text.toLowerCase();
-  for (const hint of REGION_HINTS) {
-    if (hint.keys.some((k) => t.includes(k))) {
-      return {
-        region: hint.region,
-        city: hint.city,
-        country: hint.country,
-        lat: hint.lat,
-        lng: hint.lng,
-      };
-    }
-  }
-  return {
-    region: "global" as RegionId,
-    city: "Global",
-    country: "World",
-    lat: 20,
-    lng: 0,
-  };
-}
 
 function inferCategory(text: string): CategoryId {
   const t = text.toLowerCase();
@@ -165,7 +135,8 @@ function toArticle(
         ];
 
   const blob = `${title} ${plain}`;
-  const geo = inferRegion(blob);
+  // Match places from full text; jitter pin by title so co-located stories fan out
+  const geo = inferGeoFromText(blob, title);
   const category = inferCategory(blob);
   const publishedAt = item.isoDate
     ? new Date(item.isoDate).toISOString()

@@ -1,8 +1,10 @@
 import { SectionHeader } from "@/components/SectionHeader";
 import { Sidebar } from "@/components/Sidebar";
+import { WorldGridMap } from "@/components/WorldGridMap";
 import {
   categories,
   getArticlesByRegion,
+  getGridPulses,
   getLatestArticles,
   regions,
 } from "@/lib/articles";
@@ -17,23 +19,43 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RegionsPage() {
-  const latest = await getLatestArticles(8);
-  const counts = await Promise.all(
-    regions.map(async (r) => ({
-      id: r.id,
-      count: (await getArticlesByRegion(r.id)).length,
-    })),
-  );
+  const [latest, pulses, counts] = await Promise.all([
+    getLatestArticles(8),
+    getGridPulses(24),
+    Promise.all(
+      regions.map(async (r) => ({
+        id: r.id,
+        count: (await getArticlesByRegion(r.id)).length,
+      })),
+    ),
+  ]);
   const countMap = Object.fromEntries(counts.map((c) => [c.id, c.count]));
 
   return (
     <div className="grid gap-8 lg:grid-cols-12">
-      <div className="lg:col-span-8">
-        <SectionHeader title="World regions" />
-        <p className="mb-6 max-w-2xl text-sm leading-relaxed text-news-muted dark:text-white/70">
-          Jump into a geographic desk. Each region aggregates the latest stories
-          with local coordinates — the same cells you see on the live world grid.
-        </p>
+      <div className="space-y-6 lg:col-span-8">
+        <div>
+          <SectionHeader title="World regions" />
+          <p className="mb-4 max-w-2xl text-sm leading-relaxed text-news-muted dark:text-white/70">
+            Jump into a geographic desk. Each region aggregates the latest stories
+            with local coordinates — the same cells you see on the live world grid.
+          </p>
+        </div>
+
+        <section aria-label="Live world grid" className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3 border-b border-news-line pb-2 dark:border-white/10">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-news-red">
+              Live world grid
+            </p>
+            <p className="text-xs text-news-muted dark:text-white/60">
+              {pulses.length > 0
+                ? `${pulses.length} signal${pulses.length === 1 ? "" : "s"} on map`
+                : "Waiting for signals"}
+            </p>
+          </div>
+          <WorldGridMap pulses={pulses} height={360} />
+        </section>
+
         <div className="grid gap-4 sm:grid-cols-2">
           {regions.map((region) => {
             const count = countMap[region.id] || 0;

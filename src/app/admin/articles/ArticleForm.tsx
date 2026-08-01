@@ -221,9 +221,19 @@ export function ArticleForm({ mode, initial }: Props) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError("");
     setMsg("");
+    const lat = Number(form.lat);
+    const lng = Number(form.lng);
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+      setError("Map latitude must be a number between −90 and 90.");
+      return;
+    }
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+      setError("Map longitude must be a number between −180 and 180.");
+      return;
+    }
+    setLoading(true);
     const payload = {
       title: form.title,
       slug: form.slug,
@@ -234,8 +244,8 @@ export function ArticleForm({ mode, initial }: Props) {
       region: form.region,
       city: form.city,
       country: form.country,
-      lat: Number(form.lat),
-      lng: Number(form.lng),
+      lat,
+      lng,
       author: form.author,
       image: form.image,
       imageAlt: form.imageAlt,
@@ -487,22 +497,37 @@ export function ArticleForm({ mode, initial }: Props) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={label}>
-              Latitude
+              Map latitude
               <input
                 className={field}
+                type="number"
+                inputMode="decimal"
+                min={-90}
+                max={90}
+                step="any"
                 value={form.lat}
                 onChange={(e) => set("lat", e.target.value)}
+                placeholder="-90 to 90"
               />
             </label>
             <label className={label}>
-              Longitude
+              Map longitude
               <input
                 className={field}
+                type="number"
+                inputMode="decimal"
+                min={-180}
+                max={180}
+                step="any"
                 value={form.lng}
                 onChange={(e) => set("lng", e.target.value)}
+                placeholder="-180 to 180"
               />
             </label>
           </div>
+          <p className="-mt-2 text-xs text-news-muted">
+            Pins appear on the Plotly political Live world map
+          </p>
 
           <label className={label}>
             Author

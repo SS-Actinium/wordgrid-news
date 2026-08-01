@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { assertAuthConfig } from "@/lib/auth";
-import { listPublishedArticles, getSettings } from "@/lib/store";
+import { getSettings, probeDataLayer } from "@/lib/store";
 
 /**
  * Lightweight health check for ops / load balancers.
- * Does not expose secrets.
- * - 200: data layer readable (public site can serve)
+ * Does not expose secrets. Does NOT list or parse all articles
+ * (avoids LB-heavy JSON + dedupe on every probe).
+ * - 200: data layer readable (settings + data dir / articles file stat)
  * - 503: data layer failure
  * Auth misconfiguration is reported as degraded flags (public traffic still ok).
  */
@@ -14,14 +15,14 @@ export async function GET() {
   const isProd = process.env.NODE_ENV === "production";
 
   try {
-    const [articles, settings] = await Promise.all([
-      listPublishedArticles(),
+    const [settings, probe] = await Promise.all([
       getSettings(),
+      probeDataLayer(),
     ]);
 
     const auth = assertAuthConfig();
     const readiness = {
-      data: true,
+      data: probe.ok,
       authConfigured: auth.ok,
       cronConfigured: Boolean(process.env.CRON_SECRET?.trim()),
     };
@@ -37,7 +38,8 @@ export async function GET() {
         service: "wordgrid.news",
         timestamp: new Date().toISOString(),
         latencyMs: Date.now() - started,
-        articles: articles.length,
+        // Cheap file signal only — not a full published count
+        articlesFile: probe.articlesFile,
         siteName: settings.siteName,
         autoSyncEnabled: settings.autoSyncEnabled,
         lastSyncAt: settings.lastSyncAt,

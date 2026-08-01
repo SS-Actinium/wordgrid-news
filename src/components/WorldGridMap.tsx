@@ -1,158 +1,328 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
 import type { GridPulse } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
-/** Convert lat/lng to percentage positions on a simplified equirectangular map. */
-function project(lat: number, lng: number) {
-  const x = ((lng + 180) / 360) * 100;
-  const y = ((90 - lat) / 180) * 100;
+/** Brand — newspaper red */
+const NEWS_RED = "#e31c25";
+const MARKER_BREAKING = "#ffffff";
+const MARKER_LINE = "#f5f0e8";
+
+/**
+ * Political basemap (Plotly scattergeo): light land, blue ocean, country borders.
+ * Colors must not be overridden by CSS fill:!important (that caused a black map).
+ */
+const GEO_LAYOUT = {
+  scope: "world" as const,
+  projection: { type: "natural earth" as const },
+  showcountries: true,
+  showland: true,
+  showocean: true,
+  showlakes: true,
+  showframe: false,
+  showcoastlines: true,
+  coastlinecolor: "#1e293b",
+  countrycolor: "#334155",
+  countrywidth: 0.9,
+  landcolor: "#e8e4d9",
+  oceancolor: "#1e4a7a",
+  lakecolor: "#2b6cb0",
+  bgcolor: "#0f172a",
+  resolution: 50,
+  lonaxis: { showgrid: false },
+  lataxis: { showgrid: false },
+};
+
+const Plot = dynamic(() => import("@/components/plotly/PlotlyClient"), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="flex h-[420px] w-full items-center justify-center bg-[#0c0f14] text-xs font-bold uppercase tracking-[0.2em] text-white/50"
+      aria-hidden
+    >
+      Loading map…
+    </div>
+  ),
+});
+
+/** Prefer structured city/country; fall back to "City, Country · Title" label. */
+function placeLine(node: {
+  city?: string;
+  country?: string;
+  label: string;
+}): { place: string; title: string } {
+  const city = (node.city || "").trim();
+  const country = (node.country || "").trim();
+  if (city || country) {
+    const place = [city, country].filter(Boolean).join(", ");
+    const sep = node.label.indexOf(" · ");
+    const title =
+      sep === -1 ? node.label : node.label.slice(sep + 3).trim() || node.label;
+    return { place, title };
+  }
+  const sep = node.label.indexOf(" · ");
+  if (sep === -1) return { place: node.label, title: "" };
   return {
-    x: Math.min(97, Math.max(3, x)),
-    y: Math.min(94, Math.max(6, y)),
+    place: node.label.slice(0, sep).trim(),
+    title: node.label.slice(sep + 3).trim(),
   };
 }
 
-export function WorldGridMap({ pulses }: { pulses: GridPulse[] }) {
-  const [active, setActive] = useState<string | null>(null);
+function escapeHover(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
-  const nodes = useMemo(
-    () =>
-      pulses.map((p) => ({
-        ...p,
-        ...project(p.lat, p.lng),
-      })),
-    [pulses],
+function hoverText(pulse: GridPulse): string {
+  const { place, title } = placeLine(pulse);
+  const head = escapeHover(place || "Unknown location");
+  return title ? `${head}<br>${escapeHover(title)}` : head;
+}
+
+function markerSize(intensity: number, breaking?: boolean): number {
+  const base = 8 + Math.max(0, Math.min(1, intensity)) * 10;
+  return breaking ? base + 3 : base;
+}
+
+type PlotPoint = {
+  pointNumber?: number;
+  customdata?: unknown;
+};
+
+type PlotClickEvent = {
+  points?: PlotPoint[];
+};
+
+export type WorldGridMapProps = {
+  pulses: GridPulse[];
+  /** Map plot height in px (default 420). */
+  height?: number;
+  /** Optional empty-state body copy override. */
+  emptyHint?: string;
+};
+
+export function WorldGridMap({
+  pulses,
+  height = 420,
+  emptyHint,
+}: WorldGridMapProps) {
+  const router = useRouter();
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const isEmpty = pulses.length === 0;
+
+  const activeNode = useMemo(() => {
+    if (isEmpty) return null;
+    return (
+      pulses.find((p) => p.id === activeId) ??
+      pulses.find((p) => p.breaking) ??
+      pulses[0]
+    );
+  }, [pulses, activeId, isEmpty]);
+
+  const activePlace = activeNode ? placeLine(activeNode) : null;
+
+  const data = useMemo(() => {
+    // Always emit scattergeo so Plotly paints the political basemap (even empty).
+    const lat: number[] = [];
+    const lon: number[] = [];
+    const text: string[] = [];
+    const sizes: number[] = [];
+    const colors: string[] = [];
+    const customdata: string[] = [];
+
+    for (const p of pulses) {
+      lat.push(p.lat);
+      lon.push(p.lng);
+      text.push(hoverText(p));
+      sizes.push(markerSize(p.intensity, p.breaking));
+      colors.push(p.breaking ? MARKER_BREAKING : NEWS_RED);
+      customdata.push(p.id);
+    }
+
+    return [
+      {
+        type: "scattergeo" as const,
+        mode: "markers" as const,
+        lat,
+        lon,
+        text,
+        customdata,
+        hoverinfo: "text" as const,
+        hovertemplate: "%{text}<extra></extra>",
+        marker: {
+          size: sizes.length ? sizes : 8,
+          color: colors.length ? colors : NEWS_RED,
+          opacity: 0.95,
+          line: { width: 1.5, color: MARKER_LINE },
+          symbol: "circle",
+        },
+        name: "Stories",
+      },
+    ];
+  }, [pulses]);
+
+  const layout = useMemo(
+    () => ({
+      geo: { ...GEO_LAYOUT },
+      margin: { l: 4, r: 4, t: 4, b: 4 },
+      paper_bgcolor: "#0f172a",
+      plot_bgcolor: "#0f172a",
+      showlegend: false,
+      autosize: true,
+      height,
+      width: undefined,
+      dragmode: "pan" as const,
+      hoverlabel: {
+        bgcolor: "#111",
+        bordercolor: NEWS_RED,
+        font: { color: "#fff", size: 12, family: "system-ui, sans-serif" },
+      },
+    }),
+    [height],
   );
 
-  const isEmpty = nodes.length === 0;
-  const activeNode = nodes.find((n) => n.id === active) ?? nodes[0];
+  const config = useMemo(
+    () => ({
+      displayModeBar: false,
+      responsive: true,
+      staticPlot: false,
+      scrollZoom: true,
+      doubleClick: "reset" as const,
+    }),
+    [],
+  );
+
+  const selectPulse = useCallback(
+    (pulse: GridPulse) => {
+      setActiveId(pulse.id);
+      if (pulse.articleSlug) {
+        router.push(`/story/${pulse.articleSlug}`);
+      }
+    },
+    [router],
+  );
+
+  const handleClick = useCallback(
+    (event: PlotClickEvent) => {
+      const point = event?.points?.[0];
+      if (!point) return;
+      const id =
+        typeof point.customdata === "string"
+          ? point.customdata
+          : pulses[point.pointNumber ?? -1]?.id;
+      if (!id) return;
+      const pulse = pulses.find((p) => p.id === id);
+      if (pulse) selectPulse(pulse);
+    },
+    [pulses, selectPulse],
+  );
 
   return (
-    <div className="relative overflow-hidden rounded-sm border border-news-line bg-news-ink shadow-[var(--shadow-card)] dark:border-white/10">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-      />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(227,28,37,0.15),transparent_65%)]" />
-
-      <svg
-        viewBox="0 0 1000 500"
-        className="relative h-auto w-full opacity-50"
-        aria-hidden
-      >
-        <rect width="1000" height="500" fill="transparent" />
-        {Array.from({ length: 11 }).map((_, i) => (
-          <line
-            key={`v-${i}`}
-            x1={i * 100}
-            y1={0}
-            x2={i * 100}
-            y2={500}
-            stroke="#ffffff18"
-            strokeWidth="1"
-          />
-        ))}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <line
-            key={`h-${i}`}
-            x1={0}
-            y1={i * 100}
-            x2={1000}
-            y2={i * 100}
-            stroke="#ffffff18"
-            strokeWidth="1"
-          />
-        ))}
-        <ellipse cx="220" cy="220" rx="110" ry="90" fill="#1a1a1a" stroke="#e31c2533" />
-        <ellipse cx="280" cy="340" rx="70" ry="100" fill="#1a1a1a" stroke="#e31c2533" />
-        <ellipse cx="480" cy="180" rx="80" ry="70" fill="#1a1a1a" stroke="#e31c2533" />
-        <ellipse cx="520" cy="240" rx="50" ry="80" fill="#1a1a1a" stroke="#e31c2533" />
-        <ellipse cx="700" cy="230" rx="140" ry="100" fill="#1a1a1a" stroke="#e31c2533" />
-        <ellipse cx="780" cy="320" rx="60" ry="50" fill="#1a1a1a" stroke="#e31c2533" />
-        <ellipse cx="860" cy="380" rx="55" ry="40" fill="#1a1a1a" stroke="#e31c2533" />
-        <ellipse cx="520" cy="380" rx="70" ry="55" fill="#1a1a1a" stroke="#e31c2533" />
-      </svg>
-
-      {isEmpty ? (
-        <div className="absolute inset-0 flex items-center justify-center p-6">
-          <div className="max-w-sm rounded-sm border border-white/10 bg-black/60 px-5 py-6 text-center backdrop-blur-sm">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-news-red">
-              Grid quiet
-            </p>
-            <p className="mt-2 text-sm font-semibold text-white">
-              No live signals on the map yet
-            </p>
-            <p className="mt-2 text-xs leading-relaxed text-white/70">
-              Stories appear as nodes once the desk publishes or auto-sync
-              fills the wire. Browse regions while the grid wakes up.
-            </p>
-            <Link
-              href="/regions"
-              className="mt-4 inline-flex items-center justify-center bg-news-red px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-news-red-dark"
-            >
-              Browse regions
-            </Link>
+    <div
+      className="world-grid-map relative overflow-hidden rounded-sm border border-news-ink/25 bg-[#0f172a] shadow-[var(--shadow-card)] dark:border-white/15 dark:shadow-none dark:ring-1 dark:ring-white/10"
+      role="region"
+      aria-label="Live political world map of news stories"
+    >
+      <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+        <span className="rounded-sm border border-white/25 bg-black/75 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+          Political map
+        </span>
+        <span className="rounded-sm border border-white/25 bg-black/75 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+          {pulses.length} live pin{pulses.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="relative w-full" style={{ minHeight: height }}>
+        {isEmpty ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+            <div className="max-w-sm rounded-sm border border-white/20 bg-black/80 px-5 py-6 text-center shadow-lg backdrop-blur-sm">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-news-red">
+                Grid quiet
+              </p>
+              <p className="mt-2 text-sm font-semibold text-white">
+                No live signals on the map yet
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-white/80">
+                {emptyHint ||
+                  "Pins update from live articles. Country borders stay on the political basemap while the wire fills."}
+              </p>
+              <Link
+                href="/regions"
+                className="mt-4 inline-flex items-center justify-center bg-news-red px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-news-red-dark"
+              >
+                Browse regions
+              </Link>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="absolute inset-0">
-          {nodes.map((node, idx) => (
-            <button
-              key={`${node.id}-${idx}`}
-              type="button"
-              className="group absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${node.x}%`, top: `${node.y}%` }}
-              onMouseEnter={() => setActive(node.id)}
-              onFocus={() => setActive(node.id)}
-              onClick={() => setActive(node.id)}
-              aria-label={node.label}
-            >
-              <span
-                className={cn(
-                  "absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-news-red/25",
-                  active === node.id || (!active && idx === 0)
-                    ? "animate-pulse"
-                    : "",
-                )}
-              />
-              <span
-                className={cn(
-                  "block h-2.5 w-2.5 rounded-full border-2 border-news-ink bg-news-red shadow-[0_0_10px_rgba(227,28,37,0.8)] transition group-hover:scale-150",
-                  node.intensity > 0.85 && "bg-white",
-                )}
-              />
-            </button>
-          ))}
-        </div>
-      )}
+        ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 border-t border-white/10 bg-black/70 p-4 backdrop-blur-md sm:p-5">
+        {/* Plotly paints land/ocean; do not CSS-force geo fills to black */}
+        <div
+          className={
+            isEmpty ? "pointer-events-none opacity-50" : "w-full"
+          }
+          aria-hidden={isEmpty}
+          style={{ minHeight: height }}
+        >
+          <Plot
+            data={data}
+            layout={layout}
+            config={config}
+            useResizeHandler
+            style={{ width: "100%", height, minHeight: height }}
+            onClick={handleClick}
+            className="world-grid-map__plotly w-full"
+          />
+        </div>
+      </div>
+
+      {/* Bottom panel — selected story + open link */}
+      <div className="world-grid-map__legend relative z-20 border-t border-white/20 bg-black/90 p-4 backdrop-blur-md sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-news-red">
-              {isEmpty ? "Status" : "Active cell"}
-            </p>
-            <p className="mt-1 truncate text-sm font-semibold text-white sm:text-base">
               {isEmpty
-                ? "Waiting for the next signal"
-                : (activeNode?.label ?? "Select a signal on the map")}
+                ? "Status"
+                : activeNode?.breaking
+                  ? "Breaking pin"
+                  : "Selected pin"}
             </p>
+            {isEmpty ? (
+              <p className="mt-1 truncate text-sm font-semibold text-white sm:text-base">
+                Waiting for the next signal
+              </p>
+            ) : (
+              <>
+                <p className="mt-1 truncate text-sm font-semibold text-white sm:text-base">
+                  {activePlace?.place ||
+                    activeNode?.label ||
+                    "Select a pin on the map"}
+                </p>
+                {activePlace?.title ? (
+                  <p className="mt-0.5 truncate text-xs text-white/80 sm:text-sm">
+                    {activePlace.title}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-[11px] text-white/50">
+                  Hover pin · click to open story · pan/zoom the political map
+                </p>
+              </>
+            )}
           </div>
-          {activeNode?.articleSlug && (
+          {activeNode?.articleSlug ? (
             <Link
               href={`/story/${activeNode.articleSlug}`}
               className="inline-flex shrink-0 items-center justify-center bg-news-red px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-news-red-dark"
             >
               Open story
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

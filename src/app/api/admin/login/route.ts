@@ -6,11 +6,20 @@ import {
   setAdminSession,
   shouldShowDevPasswordHint,
 } from "@/lib/auth";
-import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
+import {
+  assertSameOrigin,
+  clientIpFromRequest,
+  rateLimit,
+} from "@/lib/rate-limit";
 import { loginSchema } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
+    // Same-origin in prod: reduces login CSRF (forced session into attacker account).
+    if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
+      return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+    }
+
     const cfg = assertAuthConfig();
     if (!cfg.ok) {
       return NextResponse.json({ error: cfg.error }, { status: 503 });

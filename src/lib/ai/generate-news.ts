@@ -1,4 +1,5 @@
 import type { AiProviderId, CategoryId, RegionId } from "../types";
+import { fillMissingGeoFromText } from "../geo";
 import { resolveProviderKey } from "../secrets";
 
 export type GenerateNewsInput = {
@@ -110,10 +111,14 @@ async function generateWithGemini(
 ): Promise<string> {
   const model =
     process.env.GEMINI_MODEL || "gemini-2.0-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // SEC-10: API key in header only — never in URL query (logs/proxies)
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
     body: JSON.stringify({
       contents: [
         {
@@ -248,6 +253,30 @@ export async function generateNewsArticle(
   parsed.provider = provider;
   if (input.category) parsed.category = input.category;
   if (input.region) parsed.region = input.region;
+
+  // Fill lat/lng/city/country when AI left defaults or omitted them.
+  // Prefer topic + title (+ body) so pins land on the world grid.
+  const geoBlob = [
+    input.topic,
+    input.angle,
+    parsed.title,
+    parsed.dek,
+    ...(Array.isArray(parsed.content) ? parsed.content : []),
+    parsed.city,
+    parsed.country,
+    ...(Array.isArray(parsed.tags) ? parsed.tags : []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const withGeo = fillMissingGeoFromText(parsed, geoBlob);
+  parsed.city = withGeo.city;
+  parsed.country = withGeo.country;
+  parsed.lat = withGeo.lat;
+  parsed.lng = withGeo.lng;
+  // Respect explicit region preference from the admin form
+  if (!input.region && withGeo.region) {
+    parsed.region = withGeo.region;
+  }
 
   // Run SEO engine so AI drafts score higher out of the box
   const { optimizeArticleSeo } = await import("../seo-engine");

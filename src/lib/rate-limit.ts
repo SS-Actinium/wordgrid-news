@@ -32,11 +32,38 @@ export function rateLimit(options: {
   return { ok: true, remaining: limit - bucket.timestamps.length };
 }
 
+/**
+ * Client IP for rate-limiting keys.
+ *
+ * Spoofing note: `X-Forwarded-For` and `X-Real-Ip` are client-controlled unless a
+ * trusted reverse proxy overwrites them. Only honor those headers when
+ * TRUST_PROXY=1 (set that when the app sits behind nginx, Caddy, Cloudflare,
+ * Vercel, etc. that rewrites the hop headers).
+ *
+ * Priority when TRUST_PROXY=1:
+ *   1. x-real-ip (typical reverse-proxy single hop)
+ *   2. first hop of x-forwarded-for
+ *   3. "unknown"
+ * When not trusting proxy: ignore both headers; use shared key "direct" so
+ * rate limits on login/newsletter cannot be bypassed by rotating spoofed IPs.
+ */
 export function clientIpFromRequest(req: Request): string {
+  const trustProxy = process.env.TRUST_PROXY === "1";
+
+  if (!trustProxy) {
+    // Direct-facing / untrusted: never use client-supplied proxy headers.
+    return "direct";
+  }
+
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
+
   const xf = req.headers.get("x-forwarded-for");
-  if (xf) return xf.split(",")[0]?.trim() || "unknown";
-  const real = req.headers.get("x-real-ip");
-  if (real) return real.trim();
+  if (xf) {
+    const first = xf.split(",")[0]?.trim();
+    if (first) return first;
+  }
+
   return "unknown";
 }
 

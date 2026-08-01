@@ -85,6 +85,9 @@ export default async function RootLayout({
     })
     .slice(0, 12);
 
+  // Rail: only true breaking flags from layout; SiteHeader falls back to Latest
+  const breaking = latest.filter((a) => a.breaking === true).slice(0, 10);
+
   const orgLd = buildOrganizationJsonLd(settings.seo);
 
   return (
@@ -105,7 +108,8 @@ export default async function RootLayout({
             }
             categories={categories}
             regions={regions}
-            breaking={latest.slice(0, 10)}
+            breaking={breaking}
+            latest={latest.slice(0, 10)}
             recent={latest.slice(0, 4)}
           >
             {children}

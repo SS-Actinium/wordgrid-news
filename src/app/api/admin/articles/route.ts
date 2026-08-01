@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { createArticle, listAllArticles } from "@/lib/store";
+import { assertSameOrigin } from "@/lib/rate-limit";
 import {
   sanitizeContentBlocks,
   sanitizeHttpUrl,
+  sanitizeLocalUploadPath,
 } from "@/lib/sanitize";
 import {
   articleCreateSchema,
@@ -22,6 +24,9 @@ export async function GET() {
 export async function POST(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
   try {
     const raw = await req.json();
@@ -61,7 +66,7 @@ export async function POST(req: Request) {
 
     const imageUrl =
       sanitizeHttpUrl(body.image) ||
-      (body.image?.startsWith("/uploads/") ? body.image : "") ||
+      sanitizeLocalUploadPath(body.image) ||
       "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1600&q=80";
 
     const input: ArticleInput = {
@@ -94,9 +99,8 @@ export async function POST(req: Request) {
             canonicalUrl: sanitizeHttpUrl(body.seo.canonicalUrl) || undefined,
             ogImage:
               sanitizeHttpUrl(body.seo.ogImage) ||
-              (body.seo.ogImage?.startsWith("/uploads/")
-                ? body.seo.ogImage
-                : undefined),
+              sanitizeLocalUploadPath(body.seo.ogImage) ||
+              undefined,
           }
         : undefined,
     };

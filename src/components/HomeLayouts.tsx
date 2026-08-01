@@ -121,32 +121,38 @@ function ClassicLayout(props: Props) {
             </div>
           )}
 
-          <div className="grid gap-8 md:grid-cols-2">
-            <div>
-              <SectionHeader title="Politics" href="/categories/politics" />
-              <div className="bg-news-card p-4 shadow-[var(--shadow-card)] dark:bg-white/5">
-                {props.politics.map((article) => (
-                  <ArticleCard
-                    key={article.id}
-                    article={article}
-                    variant="compact"
-                  />
-                ))}
-              </div>
+          {(props.politics.length > 0 || props.climate.length > 0) && (
+            <div className="grid gap-8 md:grid-cols-2">
+              {props.politics.length > 0 && (
+                <div>
+                  <SectionHeader title="Politics" href="/categories/politics" />
+                  <div className="bg-news-card p-4 shadow-[var(--shadow-card)] dark:bg-white/5">
+                    {props.politics.map((article) => (
+                      <ArticleCard
+                        key={article.id}
+                        article={article}
+                        variant="compact"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {props.climate.length > 0 && (
+                <div>
+                  <SectionHeader title="Climate" href="/categories/climate" />
+                  <div className="bg-news-card p-4 shadow-[var(--shadow-card)] dark:bg-white/5">
+                    {props.climate.map((article) => (
+                      <ArticleCard
+                        key={article.id}
+                        article={article}
+                        variant="compact"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <SectionHeader title="Climate" href="/categories/climate" />
-              <div className="bg-news-card p-4 shadow-[var(--shadow-card)] dark:bg-white/5">
-                {props.climate.map((article) => (
-                  <ArticleCard
-                    key={article.id}
-                    article={article}
-                    variant="compact"
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
 
           {props.business.length > 0 && (
             <div>

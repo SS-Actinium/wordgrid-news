@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "About",
-  description: `About ${SITE.name} — global news on a world grid.`,
+  description: `About ${SITE.name} — political Plotly world map with country borders and live article pins.`,
 };
 
 export const dynamic = "force-dynamic";
@@ -23,24 +23,22 @@ export default async function AboutPage() {
           </p>
           <p>
             <strong className="text-news-ink dark:text-white">{SITE.name}</strong>{" "}
-            is a newspaper-style news platform built around one idea:{" "}
-            <em>global news belongs on a world grid</em>. Every story carries
-            coordinates, region, and desk context so readers can see not only
-            what happened, but where it sits on the map.
+            is a newspaper-style news desk built on a{" "}
+            <em>political Plotly world map</em> with country borders and live
+            article pins. Each story is plotted at its origin so readers see
+            not only what happened, but where it sits on the globe.
           </p>
           <p>
-            Live wires are ingested from free public RSS feeds (BBC, NPR, The
-            Guardian, Al Jazeera, and more). Editors can still write, edit, or
-            pull stories from the admin desk — the grid stays human-led with
-            machine assistance, not the other way around.
+            Coverage is pulled from public RSS (BBC, NPR, The Guardian, Al
+            Jazeera, and more). Editors can write, edit, or sync from the admin
+            desk — human-led, machine-assisted.
           </p>
           <p className="text-sm text-news-muted dark:text-white/70">
-            Built as an independent desk project by{" "}
+            Independent project by{" "}
             <span className="font-semibold text-news-ink dark:text-white">
               Smit Joshi
             </span>
-            , with a production bar inspired by family systems work in AI and
-            media tooling. Domain:{" "}
+            . Domain:{" "}
             <span className="font-semibold text-news-red">{SITE.domain}</span>
           </p>
         </div>
@@ -48,20 +46,20 @@ export default async function AboutPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {[
             {
-              t: "Coordinate-first stories",
-              d: "Lat/lng, city, and region on every post — the live world grid is the product surface, not a widget.",
+              t: "Political map, live pins",
+              d: "Plotly political world map with country borders and live article pins at each story’s origin.",
             },
             {
               t: "Admin CMS + auto sync",
-              d: "Full editorial control with RSS ingestion that keeps the homepage fresh without babysitting.",
+              d: "Editorial control with RSS ingestion that keeps the homepage fresh.",
             },
             {
               t: "Four homepage skins",
-              d: "Classic, Tech, Magazine, and Minimal layouts — switchable from admin for different reading moods.",
+              d: "Classic, Tech, Magazine, and Minimal — switchable from admin.",
             },
             {
               t: "Reader-first chrome",
-              d: "Dark mode, section navigation, search, and region desks built for daily newspaper habits.",
+              d: "Dark mode, sections, search, and region desks for daily reading.",
             },
           ].map((card) => (
             <div

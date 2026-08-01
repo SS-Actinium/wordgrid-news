@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { deleteLocalUpload } from "@/lib/ai/generate-image";
+import { assertSameOrigin } from "@/lib/rate-limit";
 import {
   sanitizeContentBlocks,
   sanitizeHttpUrl,
+  sanitizeLocalUploadPath,
 } from "@/lib/sanitize";
 import { deleteArticle, getArticleById, updateArticle } from "@/lib/store";
 import { articleCreateSchema, parseTags } from "@/lib/validation";
@@ -26,6 +28,9 @@ export async function GET(_req: Request, ctx: Ctx) {
 export async function PUT(req: Request, ctx: Ctx) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
   const { id } = await ctx.params;
   try {
@@ -96,7 +101,8 @@ export async function PUT(req: Request, ctx: Ctx) {
       const img = String(body.image);
       patch.image =
         sanitizeHttpUrl(img) ||
-        (img.startsWith("/uploads/") ? img : existing.image);
+        sanitizeLocalUploadPath(img) ||
+        existing.image;
     }
 
     if (body.sourceUrl != null) {
@@ -114,9 +120,8 @@ export async function PUT(req: Request, ctx: Ctx) {
           existing.seo?.canonicalUrl,
         ogImage:
           sanitizeHttpUrl(String(seo.ogImage || "")) ||
-          (String(seo.ogImage || "").startsWith("/uploads/")
-            ? String(seo.ogImage)
-            : existing.seo?.ogImage),
+          sanitizeLocalUploadPath(String(seo.ogImage || "")) ||
+          existing.seo?.ogImage,
       };
     }
 
@@ -148,9 +153,12 @@ export async function PUT(req: Request, ctx: Ctx) {
   }
 }
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export async function DELETE(req: Request, ctx: Ctx) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
   const { id } = await ctx.params;
   const existing = await getArticleById(id);

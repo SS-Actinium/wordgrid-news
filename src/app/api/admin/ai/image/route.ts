@@ -4,12 +4,19 @@ import {
   deleteLocalUpload,
   generateArticleImage,
 } from "@/lib/ai/generate-image";
-import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
+import {
+  assertSameOrigin,
+  clientIpFromRequest,
+  rateLimit,
+} from "@/lib/rate-limit";
 import { hasGeminiKey } from "@/lib/secrets";
 
 export async function POST(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
 
   const ip = clientIpFromRequest(req);
@@ -63,6 +70,9 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
   try {
     const body = await req.json();

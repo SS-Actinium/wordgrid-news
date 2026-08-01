@@ -136,6 +136,44 @@
   .classic-content strong {
     @apply font-bold text-news-ink dark:text-white;
   }
+
+  /*
+   * Live World Grid — Plotly geo map container
+   * IMPORTANT: Do NOT set fill:!important on .geo / .bg / land paths —
+   * that paints land black and hides the political basemap.
+   * Colors come from Plotly layout.geo (landcolor, oceancolor, etc.).
+   */
+  .world-grid-map {
+    color: #f9fafb;
+  }
+
+  .world-grid-map .js-plotly-plot,
+  .world-grid-map .plotly,
+  .world-grid-map .plot-container,
+  .world-grid-map .svg-container {
+    width: 100% !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .world-grid-map .js-plotly-plot svg,
+  .world-grid-map .plotly svg {
+    display: block;
+  }
+
+  /* Modebar off in config; hide as hard fallback */
+  .world-grid-map .modebar,
+  .world-grid-map .modebar-container,
+  .world-grid-map .modebar-group {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .world-grid-map .js-plotly-plot .plotly .cursor-crosshair,
+  .world-grid-map .js-plotly-plot .plotly .cursor-pointer {
+    cursor: pointer;
+  }
 }
 
 @layer utilities {

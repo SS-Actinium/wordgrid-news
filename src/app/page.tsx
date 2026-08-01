@@ -15,7 +15,7 @@ export default async function HomePage() {
   const [settings, feed, pulses] = await Promise.all([
     getSettings(),
     getHomeFeed(),
-    getGridPulses(20),
+    getGridPulses(60),
   ]);
 
   const world = [
@@ -26,17 +26,22 @@ export default async function HomePage() {
   return (
     <div className="space-y-10">
       {/* Live world grid — product differentiator */}
-      <section aria-labelledby="live-world-grid">
+      <section
+        aria-labelledby="live-world-grid"
+        className="border border-news-line bg-news-card p-4 shadow-[var(--shadow-card)] sm:p-5 dark:border-white/10 dark:bg-white/5"
+      >
         <SectionHeader
-          title="Live world grid"
+          id="live-world-grid"
+          title="Live political world map"
           href="/regions"
           hrefLabel="All regions"
         />
         <p className="mb-4 max-w-2xl text-sm leading-relaxed text-news-muted dark:text-white/70">
-          Global news on a world grid. Every story carries coordinates — click a
-          node to open the latest signal from that cell.
+          Political world map · live story pins. Country borders and oceans for
+          context; each marker is a wire story at its city or region. Hover for
+          place and title; click a pin to open the article.
         </p>
-        <WorldGridMap pulses={pulses} />
+        <WorldGridMap pulses={pulses} height={460} />
       </section>
 
       <HomeLayouts

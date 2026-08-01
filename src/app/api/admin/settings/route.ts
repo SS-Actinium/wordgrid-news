@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { sanitizeHttpUrl } from "@/lib/sanitize";
+import { assertSameOrigin } from "@/lib/rate-limit";
+import { sanitizeHttpUrl, sanitizeLocalUploadPath } from "@/lib/sanitize";
 import { getSettings, saveSettings } from "@/lib/store";
 import type { SiteSeoSettings, SiteSettings } from "@/lib/types";
 import { settingsPutSchema } from "@/lib/validation";
@@ -16,6 +17,9 @@ export async function GET() {
 export async function PUT(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
   try {
     const raw = await req.json();
@@ -76,26 +80,24 @@ export async function PUT(req: Request) {
         nextSeo.robotsIndex = seoIn.robotsIndex;
       }
 
-      // Only http(s) for image URLs; empty string clears override to blank
+      // Only http(s) or safe /uploads/<basename> (SEC-14); empty clears override
       if (seoIn.defaultOgImage != null) {
         const cleaned = sanitizeHttpUrl(seoIn.defaultOgImage);
         nextSeo.defaultOgImage =
           cleaned ||
-          (seoIn.defaultOgImage.startsWith("/uploads/")
-            ? seoIn.defaultOgImage.slice(0, 2000)
-            : seoIn.defaultOgImage.trim() === ""
-              ? ""
-              : current.seo?.defaultOgImage || "");
+          sanitizeLocalUploadPath(seoIn.defaultOgImage) ||
+          (seoIn.defaultOgImage.trim() === ""
+            ? ""
+            : current.seo?.defaultOgImage || "");
       }
       if (seoIn.organizationLogo != null) {
         const cleaned = sanitizeHttpUrl(seoIn.organizationLogo);
         nextSeo.organizationLogo =
           cleaned ||
-          (seoIn.organizationLogo.startsWith("/uploads/")
-            ? seoIn.organizationLogo.slice(0, 2000)
-            : seoIn.organizationLogo.trim() === ""
-              ? ""
-              : current.seo?.organizationLogo || "");
+          sanitizeLocalUploadPath(seoIn.organizationLogo) ||
+          (seoIn.organizationLogo.trim() === ""
+            ? ""
+            : current.seo?.organizationLogo || "");
       }
 
       patch.seo = nextSeo;

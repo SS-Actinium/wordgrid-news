@@ -85,6 +85,34 @@ export function sanitizeHttpUrl(url: string | undefined | null): string {
   }
 }
 
+/**
+ * Accept only `/uploads/<basename>` for local image storage (SEC-14).
+ * Same rules as deleteLocalUpload: no `..`, no `\`, no null bytes,
+ * single path segment, filename must match `^[\w.-]+$`.
+ * Returns normalized `/uploads/<basename>` or empty string.
+ */
+export function sanitizeLocalUploadPath(
+  url: string | undefined | null,
+): string {
+  if (!url || typeof url !== "string") return "";
+  const imageUrl = url.trim();
+  if (
+    !imageUrl.startsWith("/uploads/") ||
+    imageUrl.includes("..") ||
+    imageUrl.includes("\0") ||
+    imageUrl.includes("\\")
+  ) {
+    return "";
+  }
+
+  const relative = imageUrl.slice("/uploads/".length);
+  // Single segment only (basename === full relative path)
+  if (!relative || relative.includes("/")) return "";
+  if (!/^[\w.-]+$/i.test(relative)) return "";
+
+  return `/uploads/${relative}`;
+}
+
 /** Escape JSON for embedding in <script type="application/ld+json"> */
 export function safeJsonLd(data: unknown): string {
   return JSON.stringify(data)

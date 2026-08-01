@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { contentToPlainText } from "./editor-content";
+import { inferGeoFromText } from "./geo";
 import { readingTime } from "./utils";
 import {
   getArticleBySlug as storeGetBySlug,
@@ -110,16 +111,96 @@ export async function searchArticles(query: string): Promise<Article[]> {
   });
 }
 
-export async function getGridPulses(limit = 24): Promise<GridPulse[]> {
-  const articles = await getLatestArticles(limit);
-  return articles.map((a, index) => ({
+/** True when lat/lng are finite and within geographic bounds. */
+function isValidLatLng(lat: number, lng: number): boolean {
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
+}
+
+/**
+ * Mid-Atlantic placeholder used by news-sync / AI when no region is inferred
+ * (`lat: 20, lng: 0`). Prefer real city coords when the pool has both.
+ */
+function isDefaultGlobalCoord(lat: number, lng: number): boolean {
+  return Math.abs(lat - 20) < 0.05 && Math.abs(lng) < 0.05;
+}
+
+/** Null Island — common “missing coords” placeholder; skip for map density. */
+function isNullIsland(lat: number, lng: number): boolean {
+  return lat === 0 && lng === 0;
+}
+
+/**
+ * Map nodes for the live world grid.
+ * Always re-infers city-level geo from title+dek via `geo.ts` (longest-key match)
+ * so pins land on story origin cities, not region hubs or stale store coords.
+ * Skips Null Island (0,0). Prefers real city pins over mid-Atlantic global
+ * fallback (20,0); still fills with globals when needed for density.
+ * Default limit 60 for homepage map density. Pass `regionId` to scope a desk.
+ */
+export async function getGridPulses(
+  limit = 60,
+  options?: { regionId?: string },
+): Promise<GridPulse[]> {
+  // Larger pool so we can prefer city-level pins and still hit `limit`.
+  const poolSize = Math.max(limit * 3, 120);
+  const pool = options?.regionId
+    ? await getArticlesByRegion(options.regionId)
+    : await getLatestArticles(poolSize);
+
+  type Candidate = {
+    article: Article;
+    lat: number;
+    lng: number;
+    city: string;
+    country: string;
+  };
+
+  const real: Candidate[] = [];
+  const globalDefaults: Candidate[] = [];
+
+  for (const a of pool) {
+    // Always re-infer from title+dek — city-level keys win in geo.ts KEY_INDEX.
+    const blob = [a.title, a.dek].filter(Boolean).join(" ");
+    const inferred = inferGeoFromText(blob, a.id || a.slug);
+
+    const lat = inferred.lat;
+    const lng = inferred.lng;
+
+    // Skip Null Island and out-of-bounds after inference + jitter.
+    if (!isValidLatLng(lat, lng) || isNullIsland(lat, lng)) continue;
+
+    const city = (inferred.city || "").trim() || "Unknown";
+    const country = (inferred.country || "").trim() || "Global";
+    const candidate: Candidate = { article: a, lat, lng, city, country };
+
+    if (isDefaultGlobalCoord(lat, lng) || city === "Global") {
+      globalDefaults.push(candidate);
+    } else {
+      real.push(candidate);
+    }
+  }
+
+  // Prefer real city coords; carefully include mid-Atlantic globals to fill density.
+  const ordered = [...real, ...globalDefaults].slice(0, limit);
+
+  return ordered.map(({ article: a, lat, lng, city, country }, index) => ({
     id: a.id,
-    lat: a.lat,
-    lng: a.lng,
+    lat,
+    lng,
     intensity:
       a.breaking || a.featured ? 1 : 0.55 + ((index * 17) % 35) / 100,
-    label: `${a.city} · ${a.title}`,
+    label: a.title,
     articleSlug: a.slug,
+    city,
+    country,
+    breaking: a.breaking === true ? true : undefined,
   }));
 }
 

@@ -21,7 +21,7 @@ const FIELDS: KeyFieldId[] = [
 ];
 
 function forbiddenOrigin() {
-  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
 }
 
 /**

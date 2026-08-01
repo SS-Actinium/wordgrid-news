@@ -17,6 +17,82 @@ const SUGGESTIONS = ["AI", "climate", "Africa", "markets", "policy"] as const;
 const SEARCH_DESCRIPTION =
   "Search World Grid newspaper stories by keyword, city, tag, or author.";
 
+/** Common places / regions used on the grid — keep lightweight for copy UX only. */
+const PLACE_TOKENS = new Set(
+  [
+    "africa",
+    "americas",
+    "america",
+    "asia",
+    "australia",
+    "beijing",
+    "berlin",
+    "brazil",
+    "britain",
+    "brussels",
+    "canada",
+    "china",
+    "delhi",
+    "dubai",
+    "egypt",
+    "ethiopia",
+    "europe",
+    "france",
+    "gaza",
+    "germany",
+    "ghana",
+    "global",
+    "india",
+    "iran",
+    "iraq",
+    "israel",
+    "jakarta",
+    "japan",
+    "kenya",
+    "korea",
+    "kyiv",
+    "latin",
+    "lebanon",
+    "london",
+    "mexico",
+    "middle east",
+    "moscow",
+    "nairobi",
+    "nigeria",
+    "oceania",
+    "pacific",
+    "paris",
+    "philippines",
+    "qatar",
+    "russia",
+    "saudi",
+    "seoul",
+    "singapore",
+    "south africa",
+    "sydney",
+    "syria",
+    "taiwan",
+    "tokyo",
+    "uae",
+    "ukraine",
+    "united states",
+    "usa",
+    "u.s.",
+    "vietnam",
+    "washington",
+  ].map((s) => s.toLowerCase()),
+);
+
+function looksLikePlaceName(query: string): boolean {
+  const t = query.trim().toLowerCase().replace(/\s+/g, " ");
+  if (t.length < 2 || t.length > 48) return false;
+  if (/\d/.test(t)) return false;
+  if (t.split(" ").length > 3) return false;
+  if (PLACE_TOKENS.has(t)) return true;
+  // Any word is a known place (e.g. "London markets")
+  return t.split(" ").some((w) => w.length >= 3 && PLACE_TOKENS.has(w));
+}
+
 type Props = {
   searchParams: Promise<{ q?: string }>;
 };
@@ -54,6 +130,7 @@ export async function generateMetadata({
 export default async function SearchPage({ searchParams }: Props) {
   const raw = (await searchParams).q ?? "";
   const q = raw.trim();
+  const placeQuery = q ? looksLikePlaceName(q) : false;
   const [results, latest] = await Promise.all([
     q ? searchArticles(q) : Promise.resolve([]),
     getLatestArticles(8),
@@ -96,6 +173,22 @@ export default async function SearchPage({ searchParams }: Props) {
                 &ldquo;{q}&rdquo;
               </strong>
             </p>
+            {placeQuery ? (
+              <p className="mb-4 border border-news-line bg-news-card px-4 py-3 text-sm leading-relaxed text-news-muted dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+                <span className="font-semibold text-news-ink dark:text-white">
+                  Looking for a place?
+                </span>{" "}
+                Stories also appear on the{" "}
+                <Link
+                  href="/#live-world-grid"
+                  className="font-bold text-news-red hover:underline"
+                >
+                  live world map
+                </Link>{" "}
+                by city and coordinates — open the grid to browse that location
+                on the map.
+              </p>
+            ) : null}
             {results.length === 0 ? (
               <div className="border border-news-line bg-news-card p-8 dark:border-white/10 dark:bg-white/5">
                 <p className="text-base font-semibold text-news-ink dark:text-white">

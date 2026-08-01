@@ -12,6 +12,35 @@
 | **Target posture** | Production for large-scale public traffic (“millions of users”) |
 | **Final verdict** | **Viewer-ready single-node MVP — Not ready for multi-million / multi-instance production** |
 
+### Implementation pass (Gate A + selected Gate B) — completed 2026-08-02
+
+| Field | Value |
+|-------|--------|
+| **Status** | **Code complete** — 10 parallel team members implemented audit Gate A (+ partial Gate B) |
+| **Verification** | `npm run smoke` OK · `npm run build` OK · version 0.2.0 |
+| **Out of scope (still open)** | JSON SoR / multi-instance HA (Gate C), Redis, APM, encrypt-at-rest secrets, full compliance |
+
+**Implemented in this pass:**
+
+| Item | Status |
+|------|--------|
+| Gemini API key via `x-goog-api-key` header (no `?key=`) | **Done** |
+| Timing-safe `CRON_SECRET` compare | **Done** |
+| Same-origin on all admin mutations (prod) | **Done** |
+| `sanitizeLocalUploadPath` on write + delete | **Done** |
+| `TRUST_PROXY` rate-limit IP hardening | **Done** |
+| Map click opens story; copy fixed | **Done** |
+| Breaking rail honesty (+ Latest fallback) | **Done** |
+| `aria-labelledby` / SectionHeader id | **Done** |
+| Dead social icons removed; favicon (`app/icon.tsx`) | **Done** |
+| Empty Politics/Climate guards; region empty links | **Done** |
+| Cheap `/api/health` (no full article parse) | **Done** |
+| Category/region hub OG + canonical | **Done** |
+| Admin middleware + layout HMAC gate | **Done** |
+| `scripts/smoke.mjs` + `npm test` + GitHub Actions CI | **Done** |
+
+**Still residual (ops / platform):** plaintext `secrets.json` option remains; set env secrets in prod; enable `TRUST_PROXY=1` only behind a real reverse proxy; daily backups still operator-owned; no Postgres yet.
+
 ---
 
 ## 1. Executive summary
@@ -22,8 +51,8 @@ World Grid is a **credible digital newspaper product** with real editorial surfa
 |----------|----------|
 | **Exec** | Safe to demo / closed pilot **with secrets set**. Do **not** claim enterprise HA or multi-million MAU readiness. |
 | **Eng** | App-layer quality is good; **JSON store + force-dynamic + zero tests** remain the hard ceiling. |
-| **Sec** | Auth/XSS/sync are largely fixed in prod paths. Residual: plaintext AI keys, Gemini `?key=`, CSRF incomplete, XFF rate-limit spoof. |
-| **Product** | Viewer UX is strong (~74). Fix Breaking rail honesty, map click-vs-copy, social stubs, favicon before public brand launch. |
+| **Sec** | Auth/XSS/sync/CSRF-origin/Gemini header/upload write/XFF trust largely fixed in code. Residual: plaintext secrets.json option, soft CSP, no MFA/audit ledger. |
+| **Product** | Viewer UX polished (map open, Breaking honesty, favicon, empty states). Residual: pagination, share, public RSS. |
 | **Ops** | Health endpoint works; no CI, Docker, backups, or APM. `npm audit`: **3 high** (Next→postcss/sharp; force-fix unsafe). |
 
 ### Verdict matrix

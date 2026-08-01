@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { generateNewsArticle } from "@/lib/ai/generate-news";
-import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
+import {
+  assertSameOrigin,
+  clientIpFromRequest,
+  rateLimit,
+} from "@/lib/rate-limit";
 import type { AiProviderId, CategoryId, RegionId } from "@/lib/types";
 
 export async function POST(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
 
   const ip = clientIpFromRequest(req);

@@ -23,7 +23,7 @@ export default function GlobalError({
       <h1 className="mt-3 font-display text-3xl font-bold text-news-ink dark:text-white">
         We couldn&apos;t load this page
       </h1>
-      <p className="mt-3 text-news-muted">
+      <p className="mt-3 text-news-muted dark:text-white/70">
         A temporary error occurred. Try again, or return to the homepage.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -36,7 +36,7 @@ export default function GlobalError({
         </button>
         <Link
           href="/"
-          className="inline-flex h-11 items-center border border-news-line px-6 text-sm font-bold uppercase tracking-wide text-news-ink hover:border-news-red hover:text-news-red dark:border-white/15 dark:text-white"
+          className="inline-flex h-11 items-center border border-news-line px-6 text-sm font-bold uppercase tracking-wide text-news-ink hover:border-news-red hover:text-news-red dark:border-white/15 dark:text-white dark:hover:border-news-red dark:hover:text-news-red"
         >
           Home
         </Link>

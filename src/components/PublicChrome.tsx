@@ -13,6 +13,7 @@ export function PublicChrome({
   categories,
   regions,
   breaking,
+  latest,
   recent,
 }: {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export function PublicChrome({
   categories: Category[];
   regions: Region[];
   breaking: Article[];
+  latest: Article[];
   recent: Article[];
 }) {
   const pathname = usePathname();
@@ -39,6 +41,7 @@ export function PublicChrome({
         categories={categories}
         regions={regions}
         breaking={breaking}
+        latest={latest}
       />
       <main className="news-container py-6 sm:py-8">{children}</main>
       <SiteFooter

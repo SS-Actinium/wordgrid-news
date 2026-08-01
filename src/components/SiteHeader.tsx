@@ -4,15 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
-  Facebook,
-  Instagram,
   Menu,
   Moon,
   Search,
   Sun,
-  Twitter,
   X,
-  Youtube,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Article, Category, Region } from "@/lib/types";
@@ -24,7 +20,10 @@ type Props = {
   tagline: string;
   categories: Category[];
   regions: Region[];
+  /** Articles with breaking===true only (from layout). */
   breaking: Article[];
+  /** Latest articles for mega menu + "Latest" rail fallback. */
+  latest: Article[];
 };
 
 export function SiteHeader({
@@ -33,12 +32,18 @@ export function SiteHeader({
   categories,
   regions,
   breaking,
+  latest,
 }: Props) {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const [sticky, setSticky] = useState(false);
+
+  // Breaking rail when flagged items exist; otherwise "Latest" with newest wire
+  const hasBreaking = breaking.length > 0;
+  const railItems = hasBreaking ? breaking : latest;
+  const railLabel = hasBreaking ? "Breaking" : "Latest";
 
   useEffect(() => {
     const onScroll = () => setSticky(window.scrollY > 120);
@@ -69,21 +74,7 @@ export function SiteHeader({
       <div className="border-b border-news-line bg-news-ink text-white dark:border-white/10">
         <div className="news-container flex h-9 items-center justify-between text-xs">
           <p className="truncate text-white/80">{today}</p>
-          <div className="flex items-center gap-3">
-            <span className="hidden text-white/60 sm:inline">Follow us</span>
-            <a href="#" aria-label="Facebook" className="hover:text-news-red">
-              <Facebook className="h-3.5 w-3.5" />
-            </a>
-            <a href="#" aria-label="Twitter" className="hover:text-news-red">
-              <Twitter className="h-3.5 w-3.5" />
-            </a>
-            <a href="#" aria-label="Instagram" className="hover:text-news-red">
-              <Instagram className="h-3.5 w-3.5" />
-            </a>
-            <a href="#" aria-label="YouTube" className="hover:text-news-red">
-              <Youtube className="h-3.5 w-3.5" />
-            </a>
-          </div>
+          {/* Social icons omitted until real profile URLs are configured in settings */}
         </div>
       </div>
 
@@ -199,7 +190,7 @@ export function SiteHeader({
                         Latest
                       </p>
                       <ul className="space-y-3">
-                        {breaking.slice(0, 4).map((a, index) => (
+                        {latest.slice(0, 4).map((a, index) => (
                           <li key={`${a.id}-mega-${index}`}>
                             <Link
                               href={`/story/${a.slug}`}
@@ -285,17 +276,17 @@ export function SiteHeader({
         )}
       </div>
 
-      {breaking.length > 0 && (
+      {railItems.length > 0 && (
         <div className="border-b border-news-line bg-news-white dark:border-white/10 dark:bg-news-ink">
           <div className="news-container flex h-10 items-center overflow-hidden">
             <span className="z-10 flex h-full shrink-0 items-center bg-news-red px-3 text-[11px] font-black uppercase tracking-wider text-white">
-              Breaking
+              {railLabel}
             </span>
             <div className="relative flex-1 overflow-hidden">
               <div className="animate-ticker flex w-max whitespace-nowrap">
-                {[...breaking, ...breaking].map((a, i) => (
+                {[...railItems, ...railItems].map((a, i) => (
                   <Link
-                    key={`${a.id}-${i}`}
+                    key={`${a.id}-rail-${i}`}
                     href={`/story/${a.slug}`}
                     className="inline-flex items-center px-4 text-sm text-news-ink hover:text-news-red dark:text-white/90"
                   >

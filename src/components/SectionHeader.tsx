@@ -2,10 +2,12 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export function SectionHeader({
+  id,
   title,
   href,
   hrefLabel = "View all",
 }: {
+  id?: string;
   eyebrow?: string;
   title: string;
   href?: string;
@@ -13,7 +15,9 @@ export function SectionHeader({
 }) {
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
-      <h2 className="section-title !mb-0 flex-1">{title}</h2>
+      <h2 id={id} className="section-title !mb-0 flex-1">
+        {title}
+      </h2>
       {href && (
         <Link
           href={href}

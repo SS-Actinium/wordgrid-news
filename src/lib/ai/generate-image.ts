@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { sanitizeLocalUploadPath } from "../sanitize";
 import { requireGeminiKey } from "../secrets";
 
 export type GenerateImageResult = {
@@ -30,11 +31,15 @@ export async function generateArticleImage(
     process.env.GEMINI_IMAGE_MODEL ||
     "gemini-2.0-flash-preview-image-generation";
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // SEC-10: API key in header only — never in URL query (logs/proxies)
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       generationConfig: {
@@ -63,10 +68,13 @@ async function generateWithModel(
   model: string,
   fullPrompt: string,
 ): Promise<GenerateImageResult> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       generationConfig: {
@@ -137,29 +145,14 @@ async function extractAndSaveImage(
 
 /**
  * Delete a local uploaded image only if it resolves under public/uploads
- * (audit HIGH-05 path traversal fix).
+ * (audit HIGH-05 path traversal fix; reuses sanitizeLocalUploadPath / SEC-14).
  */
 export async function deleteLocalUpload(imageUrl: string): Promise<boolean> {
-  if (!imageUrl || typeof imageUrl !== "string") return false;
-  // Disallow any path tricks early
-  if (
-    !imageUrl.startsWith("/uploads/") ||
-    imageUrl.includes("..") ||
-    imageUrl.includes("\0") ||
-    imageUrl.includes("\\")
-  ) {
-    return false;
-  }
+  const safe = sanitizeLocalUploadPath(imageUrl);
+  if (!safe) return false;
 
+  const base = safe.slice("/uploads/".length);
   const uploadsRoot = path.resolve(process.cwd(), "public", "uploads");
-  const relative = imageUrl.replace(/^\/uploads\//, "");
-  // Only allow a single path segment filename
-  const base = path.basename(relative);
-  if (!base || base !== relative.replace(/\\/g, "/").split("/").pop()) {
-    return false;
-  }
-  if (!/^[\w.-]+$/i.test(base)) return false;
-
   const resolved = path.resolve(uploadsRoot, base);
   if (
     resolved !== uploadsRoot &&

@@ -75,13 +75,22 @@ export interface Article {
   aiProvider?: AiProviderId | string;
 }
 
+/** Live map node (WorldGridMap / Plotly hover). */
 export interface GridPulse {
   id: string;
   lat: number;
   lng: number;
   intensity: number;
+  /** Story title — primary hover / tooltip line. */
   label: string;
+  /** Story route segment for pin click → `/story/[slug]`. */
   articleSlug?: string;
+  /** Origin city for map hover chrome. */
+  city?: string;
+  /** Origin country for map hover chrome. */
+  country?: string;
+  /** True when the story is flagged breaking (pulse / pin emphasis). */
+  breaking?: boolean;
 }
 
 export interface SiteSeoSettings {

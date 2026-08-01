@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   }
 
   if (process.env.NODE_ENV === "production" && !assertSameOrigin(req)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
 
   await clearAdminSession();

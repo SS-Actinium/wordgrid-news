@@ -1,14 +1,18 @@
 import { ArticleCard } from "@/components/ArticleCard";
 import { RegionPills } from "@/components/RegionPills";
 import { Sidebar } from "@/components/Sidebar";
+import { WorldGridMap } from "@/components/WorldGridMap";
 import {
   categories,
   getArticlesByRegion,
+  getGridPulses,
   getLatestArticles,
   getRegion,
   regions,
+  SITE,
 } from "@/lib/articles";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 type Props = { params: Promise<{ id: string }> };
@@ -23,7 +27,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const region = getRegion(id);
   if (!region) return { title: "Region not found" };
-  return { title: `${region.name} news`, description: region.description };
+
+  const title = `${region.name} news`;
+  const description = region.description;
+  const url = `${SITE.url}/regions/${region.id}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+  };
 }
 
 export default async function RegionDetailPage({ params }: Props) {
@@ -31,9 +55,10 @@ export default async function RegionDetailPage({ params }: Props) {
   const region = getRegion(id);
   if (!region) notFound();
 
-  const [stories, latest] = await Promise.all([
+  const [stories, latest, pulses] = await Promise.all([
     getArticlesByRegion(id),
     getLatestArticles(8),
+    getGridPulses(20, { regionId: id }),
   ]);
 
   return (
@@ -64,6 +89,20 @@ export default async function RegionDetailPage({ params }: Props) {
           </div>
         </div>
 
+        <section aria-label={`${region.name} grid map`} className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3 border-b border-news-line pb-2 dark:border-white/10">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-news-red">
+              Regional grid
+            </p>
+            <p className="text-xs text-news-muted dark:text-white/60">
+              {pulses.length > 0
+                ? `${pulses.length} signal${pulses.length === 1 ? "" : "s"} on map`
+                : "Waiting for signals"}
+            </p>
+          </div>
+          <WorldGridMap pulses={pulses} height={360} />
+        </section>
+
         {stories.length === 0 ? (
           <div className="border border-dashed border-news-line bg-news-card p-8 dark:border-white/15 dark:bg-white/5">
             <p className="font-semibold text-news-ink dark:text-white">
@@ -73,6 +112,20 @@ export default async function RegionDetailPage({ params }: Props) {
               Auto-sync will fill the desk as feeds update. Check other regions
               or the live world grid on the homepage.
             </p>
+            <div className="mt-4 flex flex-wrap gap-4">
+              <Link
+                href="/regions"
+                className="inline-flex text-sm font-bold text-news-red hover:underline"
+              >
+                Browse all regions
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex text-sm font-bold text-news-ink hover:text-news-red dark:text-white dark:hover:text-news-red"
+              >
+                Back to homepage
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

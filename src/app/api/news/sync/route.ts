@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { secureCompare } from "@/lib/auth";
 import { ensureFreshNews, syncWorldNews } from "@/lib/news-sync";
 import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
 
@@ -20,6 +21,10 @@ export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET?.trim();
   const force = url.searchParams.get("force") === "1";
   const isProd = process.env.NODE_ENV === "production";
+  // SEC-16: constant-time compare (same pattern as auth.secureCompare)
+  const secretOk = Boolean(
+    cronSecret && secret && secureCompare(secret, cronSecret),
+  );
 
   if (isProd) {
     if (!cronSecret) {
@@ -31,10 +36,10 @@ export async function GET(req: Request) {
         { status: 503 },
       );
     }
-    if (secret !== cronSecret) {
+    if (!secretOk) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-  } else if (cronSecret && secret && secret !== cronSecret) {
+  } else if (cronSecret && secret && !secretOk) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -55,7 +60,7 @@ export async function GET(req: Request) {
   }
 
   // Public AutoSync may not force; force requires secret in prod (already gated)
-  const allowForce = force && (!isProd || Boolean(cronSecret && secret === cronSecret));
+  const allowForce = force && (!isProd || secretOk);
 
   try {
     const result = allowForce
