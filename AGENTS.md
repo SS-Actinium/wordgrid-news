@@ -79,8 +79,11 @@ After major work: note optimizations, automation opportunities, technical debt, 
 
 Lives one level up at the projects root (`claude projects/agency-memory/`), **not** inside this product folder or its GitHub repo.
 
+- `../agency-memory/TEAM.md` — **full department roster; always use the team**  
 - `../agency-memory/SOUL.md` — identity & values  
 - `../agency-memory/FAMILY.md` — Darshankumar Joshi research dossier  
 - `../agency-memory/AI_MODELS.md` — model landscape & routing  
 - `../agency-memory/PLAYBOOK.md` — agency operating playbook  
+
+**Standing order:** Auto-select expert departments for every non-trivial task. Security + QA gates before “done.”
 
