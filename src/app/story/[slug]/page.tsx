@@ -12,6 +12,7 @@ import {
   getRegion,
 } from "@/lib/articles";
 import { contentBlocksToHtml } from "@/lib/editor-content";
+import { safeJsonLd, sanitizeHttpUrl } from "@/lib/sanitize";
 import {
   buildNewsArticleJsonLd,
   resolveArticleMeta,
@@ -89,28 +90,37 @@ export default async function StoryPage({ params }: Props) {
     getLatestArticles(8),
   ]);
   const jsonLd = buildNewsArticleJsonLd(article, settings.seo);
+  const safeSourceUrl = sanitizeHttpUrl(article.sourceUrl);
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <ReadingProgress />
       <div className="grid gap-8 lg:grid-cols-12">
         <article className="lg:col-span-8">
-          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
-            <Link href="/" className="text-news-muted hover:text-news-red">
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-4 flex flex-wrap items-center gap-2 text-xs"
+          >
+            <Link
+              href="/"
+              className="text-news-muted hover:text-news-red dark:text-white/60 dark:hover:text-news-red"
+            >
               Home
             </Link>
-            <span className="text-news-line">/</span>
+            <span className="text-news-line dark:text-white/20" aria-hidden>
+              /
+            </span>
             <Link
               href={`/categories/${article.category}`}
-              className="text-news-muted hover:text-news-red"
+              className="text-news-muted hover:text-news-red dark:text-white/60 dark:hover:text-news-red"
             >
               {category?.name}
             </Link>
-          </div>
+          </nav>
 
           <div className="flex flex-wrap gap-2">
             {article.breaking && <Badge>Breaking</Badge>}
@@ -127,11 +137,11 @@ export default async function StoryPage({ params }: Props) {
           <h1 className="mt-4 font-display text-3xl font-bold leading-tight text-news-ink text-balance dark:text-white sm:text-4xl lg:text-[2.75rem]">
             {article.title}
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-news-muted">
+          <p className="mt-4 text-lg leading-relaxed text-news-muted dark:text-white/75">
             {article.dek}
           </p>
 
-          <div className="meta-row mt-6 border-y border-news-line py-4 text-sm dark:border-white/10">
+          <div className="meta-row mt-6 border-y border-news-line py-4 text-sm dark:border-white/10 dark:text-white/60">
             <span className="inline-flex items-center gap-1.5 font-semibold text-news-ink dark:text-white">
               <User className="h-4 w-4 text-news-red" />
               {article.author}
@@ -147,7 +157,7 @@ export default async function StoryPage({ params }: Props) {
             </span>
           </div>
 
-          <div className="relative mt-6 aspect-[16/9] overflow-hidden">
+          <div className="relative mt-6 aspect-[16/9] overflow-hidden bg-news-soft dark:bg-white/5">
             <Image
               src={article.image}
               alt={article.imageAlt}
@@ -166,9 +176,9 @@ export default async function StoryPage({ params }: Props) {
             }}
           />
 
-          {article.sourceUrl && (
+          {safeSourceUrl && (
             <a
-              href={article.sourceUrl}
+              href={safeSourceUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-news-red hover:underline"
@@ -183,7 +193,7 @@ export default async function StoryPage({ params }: Props) {
               <Link
                 key={tag}
                 href={`/search?q=${encodeURIComponent(tag)}`}
-                className="border border-news-line px-2.5 py-1 text-xs font-semibold text-news-muted hover:border-news-red hover:text-news-red dark:border-white/15"
+                className="border border-news-line px-2.5 py-1 text-xs font-semibold text-news-muted hover:border-news-red hover:text-news-red dark:border-white/15 dark:text-white/70 dark:hover:text-news-red"
               >
                 {tag}
               </Link>

@@ -1,8 +1,9 @@
+import { cache } from "react";
 import { contentToPlainText } from "./editor-content";
 import { readingTime } from "./utils";
 import {
   getArticleBySlug as storeGetBySlug,
-  listPublishedArticles,
+  listPublishedArticles as storeListPublished,
 } from "./store";
 import type { Article, GridPulse } from "./types";
 import { categories, regions } from "./constants";
@@ -18,25 +19,32 @@ export function getCategory(id: string) {
   return categories.find((c) => c.id === id);
 }
 
+/**
+ * Request-scoped cache: one full published list per RSC request (audit MED-07).
+ */
+export const getPublishedArticlesCached = cache(async (): Promise<Article[]> => {
+  return storeListPublished();
+});
+
 export async function getAllArticles(): Promise<Article[]> {
-  return listPublishedArticles();
+  return getPublishedArticlesCached();
 }
 
 export async function getArticleBySlug(
   slug: string,
 ): Promise<Article | undefined> {
-  return storeGetBySlug(slug);
+  const all = await getPublishedArticlesCached();
+  return all.find((a) => a.slug === slug) ?? storeGetBySlug(slug);
 }
 
 export async function getFeaturedArticles(): Promise<Article[]> {
-  const articles = await listPublishedArticles();
+  const articles = await getPublishedArticlesCached();
   const featured = articles.filter((a) => a.featured);
   return featured.length > 0 ? featured : articles.slice(0, 3);
 }
 
 export async function getLatestArticles(limit?: number): Promise<Article[]> {
-  const articles = await listPublishedArticles();
-  // Defensive unique-by-id (guards against any residual store collisions)
+  const articles = await getPublishedArticlesCached();
   const seen = new Set<string>();
   const unique = articles.filter((a) => {
     if (seen.has(a.id)) return false;
@@ -47,14 +55,14 @@ export async function getLatestArticles(limit?: number): Promise<Article[]> {
 }
 
 export async function getArticlesByRegion(regionId: string): Promise<Article[]> {
-  const articles = await listPublishedArticles();
+  const articles = await getPublishedArticlesCached();
   return articles.filter((a) => a.region === regionId);
 }
 
 export async function getArticlesByCategory(
   categoryId: string,
 ): Promise<Article[]> {
-  const articles = await listPublishedArticles();
+  const articles = await getPublishedArticlesCached();
   return articles.filter((a) => a.category === categoryId);
 }
 
@@ -62,7 +70,7 @@ export async function getRelatedArticles(
   article: Article,
   limit = 3,
 ): Promise<Article[]> {
-  const articles = await listPublishedArticles();
+  const articles = await getPublishedArticlesCached();
   return articles
     .filter(
       (a) =>
@@ -83,7 +91,7 @@ export function getArticleMeta(article: Article) {
 export async function searchArticles(query: string): Promise<Article[]> {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  const articles = await listPublishedArticles();
+  const articles = await getPublishedArticlesCached();
   return articles.filter((a) => {
     const hay = [
       a.title,
@@ -102,9 +110,9 @@ export async function searchArticles(query: string): Promise<Article[]> {
   });
 }
 
-export async function getGridPulses(): Promise<GridPulse[]> {
-  const articles = await listPublishedArticles();
-  return articles.slice(0, 24).map((a, index) => ({
+export async function getGridPulses(limit = 24): Promise<GridPulse[]> {
+  const articles = await getLatestArticles(limit);
+  return articles.map((a, index) => ({
     id: a.id,
     lat: a.lat,
     lng: a.lng,
@@ -113,4 +121,22 @@ export async function getGridPulses(): Promise<GridPulse[]> {
     label: `${a.city} · ${a.title}`,
     articleSlug: a.slug,
   }));
+}
+
+/** Single snapshot for homepage (one read, many filters). */
+export async function getHomeFeed() {
+  const all = await getPublishedArticlesCached();
+  const latest = all;
+  const featured = all.filter((a) => a.featured);
+  const byCat = (id: string) => all.filter((a) => a.category === id);
+  const byRegion = (id: string) => all.filter((a) => a.region === id);
+  return {
+    latest,
+    featured: featured.length > 0 ? featured : latest.slice(0, 3),
+    tech: byCat("technology"),
+    politics: byCat("politics"),
+    climate: byCat("climate"),
+    business: byCat("business"),
+    global: byRegion("global"),
+  };
 }

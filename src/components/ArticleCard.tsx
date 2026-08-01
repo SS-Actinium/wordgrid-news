@@ -57,16 +57,16 @@ export function ArticleCard({
     return (
       <Link
         href={`/story/${article.slug}`}
-        className="group flex gap-3 border-b border-news-line py-3 last:border-0"
+        className="group flex gap-3 border-b border-news-line py-3 last:border-0 dark:border-white/10"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-news-soft text-sm font-black text-news-red">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-news-soft text-sm font-black text-news-red dark:bg-white/10">
           {String(rank ?? 1).padStart(2, "0")}
         </span>
         <div className="min-w-0">
           <p className="line-clamp-2 text-sm font-bold leading-snug text-news-ink group-hover:text-news-red dark:text-white">
             {article.title}
           </p>
-          <p className="mt-1 text-xs text-news-muted">
+          <p className="mt-1 text-xs text-news-muted dark:text-white/60">
             {formatRelativeDate(article.publishedAt)}
           </p>
         </div>
@@ -78,9 +78,9 @@ export function ArticleCard({
     return (
       <Link
         href={`/story/${article.slug}`}
-        className="group flex gap-3 border-b border-news-line py-3 last:border-0"
+        className="group flex gap-3 border-b border-news-line py-3 last:border-0 dark:border-white/10"
       >
-        <div className="relative h-[72px] w-[96px] shrink-0 overflow-hidden">
+        <div className="relative h-[72px] w-[96px] shrink-0 overflow-hidden bg-news-soft dark:bg-white/5">
           <NewsImage
             article={article}
             className="object-cover transition duration-500 group-hover:scale-105"
@@ -94,7 +94,7 @@ export function ArticleCard({
           <p className="mt-0.5 line-clamp-2 text-sm font-bold leading-snug text-news-ink group-hover:text-news-red dark:text-white">
             {article.title}
           </p>
-          <p className="mt-1 text-xs text-news-muted">
+          <p className="mt-1 text-xs text-news-muted dark:text-white/60">
             {formatRelativeDate(article.publishedAt)}
           </p>
         </div>
@@ -120,10 +120,10 @@ export function ArticleCard({
           <h3 className="mt-2 text-xl font-bold leading-snug text-news-ink group-hover:text-news-red text-balance dark:text-white">
             {article.title}
           </h3>
-          <p className="mt-2 line-clamp-2 text-sm text-news-muted">
+          <p className="mt-2 line-clamp-2 text-sm text-news-muted dark:text-white/70">
             {article.dek}
           </p>
-          <div className="meta-row mt-3">
+          <div className="meta-row mt-3 dark:text-white/55">
             <span className="inline-flex items-center gap-1">
               <User className="h-3 w-3" />
               {article.author}
@@ -204,10 +204,10 @@ export function ArticleCard({
           <h3 className="mt-3 text-2xl font-bold leading-snug text-news-ink group-hover:text-news-red text-balance dark:text-white">
             {article.title}
           </h3>
-          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-news-muted">
+          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-news-muted dark:text-white/70">
             {article.dek}
           </p>
-          <div className="meta-row mt-4">
+          <div className="meta-row mt-4 dark:text-white/55">
             <span>{article.author}</span>
             <span>{formatRelativeDate(article.publishedAt)}</span>
           </div>
@@ -233,8 +233,10 @@ export function ArticleCard({
         <h3 className="line-clamp-2 text-lg font-bold leading-snug text-news-ink group-hover:text-news-red dark:text-white">
           {article.title}
         </h3>
-        <p className="mt-2 line-clamp-2 text-sm text-news-muted">{article.dek}</p>
-        <div className="meta-row mt-auto pt-3">
+        <p className="mt-2 line-clamp-2 text-sm text-news-muted dark:text-white/70">
+          {article.dek}
+        </p>
+        <div className="meta-row mt-auto pt-3 dark:text-white/55">
           <span className="inline-flex items-center gap-1">
             <User className="h-3 w-3" />
             {article.author}

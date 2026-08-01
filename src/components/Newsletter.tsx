@@ -79,7 +79,12 @@ export function Newsletter({
               setStatus("idle");
             }}
             placeholder="Email address"
-            className="h-12 flex-1 border-0 bg-white px-4 text-sm text-news-ink outline-none"
+            aria-label="Email for newsletter"
+            className={
+              variant === "banner"
+                ? "h-12 flex-1 border-0 bg-white px-4 text-sm text-news-ink outline-none placeholder:text-news-muted"
+                : "h-12 flex-1 border border-news-line bg-white px-4 text-sm text-news-ink outline-none placeholder:text-news-muted focus:border-news-red dark:border-white/15 dark:bg-white/10 dark:text-white dark:placeholder:text-white/40"
+            }
             required
           />
           <button
@@ -92,7 +97,14 @@ export function Newsletter({
         </form>
       </div>
       {status === "ok" && (
-        <p className="mt-3 text-center text-sm text-green-400" role="status">
+        <p
+          className={
+            variant === "banner"
+              ? "mt-3 text-center text-sm text-green-400"
+              : "mt-3 text-center text-sm text-green-600 dark:text-green-400"
+          }
+          role="status"
+        >
           {message}
         </p>
       )}

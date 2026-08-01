@@ -1,16 +1,58 @@
 import { NextResponse } from "next/server";
-import { getAdminPassword, setAdminSession } from "@/lib/auth";
+import {
+  assertAuthConfig,
+  getAdminPassword,
+  secureCompare,
+  setAdminSession,
+  shouldShowDevPasswordHint,
+} from "@/lib/auth";
+import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
+import { loginSchema } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as { password?: string };
-    const password = body.password || "";
-    if (password !== getAdminPassword()) {
+    const cfg = assertAuthConfig();
+    if (!cfg.ok) {
+      return NextResponse.json({ error: cfg.error }, { status: 503 });
+    }
+
+    const ip = clientIpFromRequest(req);
+    const limited = rateLimit({
+      key: `login:${ip}`,
+      limit: 8,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (!limited.ok) {
+      return NextResponse.json(
+        {
+          error: `Too many login attempts. Retry in ${limited.retryAfterSec}s.`,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limited.retryAfterSec) },
+        },
+      );
+    }
+
+    const json = await req.json();
+    const parsed = loginSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    const expected = getAdminPassword();
+    if (!secureCompare(parsed.data.password, expected)) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
+
     await setAdminSession();
-    return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "Bad request" }, { status: 400 });
+    return NextResponse.json({
+      ok: true,
+      devHint: shouldShowDevPasswordHint(),
+    });
+  } catch (err) {
+    const msg =
+      err instanceof Error ? err.message : "Login unavailable";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

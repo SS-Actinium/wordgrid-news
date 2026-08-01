@@ -1,4 +1,5 @@
 import { SITE } from "./constants";
+import { sanitizeHttpUrl } from "./sanitize";
 import type { Article, SeoScore, SeoScoreItem, SiteSeoSettings } from "./types";
 
 export const DEFAULT_SITE_SEO: SiteSeoSettings = {
@@ -14,6 +15,11 @@ export const DEFAULT_SITE_SEO: SiteSeoSettings = {
   robotsIndex: true,
 };
 
+function httpImage(url?: string): string {
+  const cleaned = sanitizeHttpUrl(url || "");
+  return cleaned;
+}
+
 export function resolveArticleMeta(article: Article, siteSeo?: SiteSeoSettings) {
   const seo = article.seo || {};
   const title =
@@ -27,12 +33,13 @@ export function resolveArticleMeta(article: Article, siteSeo?: SiteSeoSettings) 
     siteSeo?.defaultMetaDescription ||
     SITE.description;
   const image =
-    seo.ogImage?.trim() ||
-    article.image ||
-    siteSeo?.defaultOgImage ||
+    httpImage(seo.ogImage) ||
+    httpImage(article.image) ||
+    httpImage(siteSeo?.defaultOgImage) ||
     DEFAULT_SITE_SEO.defaultOgImage;
   const canonical =
-    seo.canonicalUrl?.trim() || `${SITE.url}/story/${article.slug}`;
+    sanitizeHttpUrl(seo.canonicalUrl || "") ||
+    `${SITE.url}/story/${article.slug}`;
   const noindex = Boolean(seo.noindex);
 
   return { title, description, image, canonical, noindex };
@@ -128,42 +135,46 @@ export function buildNewsArticleJsonLd(
   siteSeo?: SiteSeoSettings,
 ) {
   const meta = resolveArticleMeta(article, siteSeo);
+  const logoUrl = httpImage(siteSeo?.organizationLogo);
+  const images = meta.image ? [meta.image] : undefined;
+
   return {
     "@context": "https://schema.org",
     "@type": article.seo?.schemaType || "NewsArticle",
     headline: meta.title,
     description: meta.description,
-    image: [meta.image],
+    image: images,
     datePublished: article.publishedAt,
     dateModified: article.updatedAt || article.publishedAt,
     author: {
       "@type": "Person",
-      name: article.author,
+      name: article.author || SITE.name,
     },
     publisher: {
       "@type": "Organization",
       name: siteSeo?.organizationName || SITE.name,
-      logo: siteSeo?.organizationLogo
-        ? { "@type": "ImageObject", url: siteSeo.organizationLogo }
-        : undefined,
+      ...(logoUrl
+        ? { logo: { "@type": "ImageObject", url: logoUrl } }
+        : {}),
     },
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": meta.canonical,
     },
-    keywords: article.tags?.join(", "),
+    keywords: article.tags?.length ? article.tags.join(", ") : undefined,
     articleSection: article.category,
   };
 }
 
 export function buildOrganizationJsonLd(siteSeo?: SiteSeoSettings) {
+  const logoUrl = httpImage(siteSeo?.organizationLogo);
   return {
     "@context": "https://schema.org",
     "@type": "NewsMediaOrganization",
     name: siteSeo?.organizationName || SITE.name,
     url: SITE.url,
     description: siteSeo?.defaultMetaDescription || SITE.description,
-    logo: siteSeo?.organizationLogo || undefined,
+    ...(logoUrl ? { logo: logoUrl } : {}),
     sameAs: [] as string[],
   };
 }

@@ -44,14 +44,25 @@ export function Sidebar({
 
   return (
     <aside className="space-y-8">
-      <div className="bg-news-card p-5 shadow-[var(--shadow-card)] dark:bg-white/5">
+      <div className="bg-news-card p-5 shadow-[var(--shadow-card)] dark:bg-white/5 dark:ring-1 dark:ring-white/10">
         <h3 className="section-title !mb-4 !text-base !normal-case tracking-normal dark:text-white">
           Trending now
         </h3>
         <div>
-          {trending.map((a, i) => (
-            <ArticleCard key={a.id} article={a} variant="trending" rank={i + 1} />
-          ))}
+          {trending.length > 0 ? (
+            trending.map((a, i) => (
+              <ArticleCard
+                key={a.id}
+                article={a}
+                variant="trending"
+                rank={i + 1}
+              />
+            ))
+          ) : (
+            <p className="py-2 text-sm text-news-muted dark:text-white/70">
+              No trending stories yet.
+            </p>
+          )}
         </div>
       </div>
 
@@ -75,8 +86,9 @@ export function Sidebar({
               setError("");
             }}
             placeholder="Your email"
-            className="h-11 w-full border-0 bg-white px-3 text-sm text-news-ink outline-none"
+            className="h-11 w-full border-0 bg-white px-3 text-sm text-news-ink outline-none placeholder:text-news-muted"
             required
+            aria-label="Email for newsletter"
           />
           <button
             type="submit"
@@ -87,12 +99,18 @@ export function Sidebar({
           </button>
         </form>
         {ok && (
-          <p className="mt-2 text-sm text-green-400">Thanks for subscribing.</p>
+          <p className="mt-2 text-sm text-green-400" role="status">
+            Thanks for subscribing.
+          </p>
         )}
-        {error && <p className="mt-2 text-sm text-news-red">{error}</p>}
+        {error && (
+          <p className="mt-2 text-sm text-red-300" role="alert">
+            {error}
+          </p>
+        )}
       </div>
 
-      <div className="bg-news-card p-5 shadow-[var(--shadow-card)] dark:bg-white/5">
+      <div className="bg-news-card p-5 shadow-[var(--shadow-card)] dark:bg-white/5 dark:ring-1 dark:ring-white/10">
         <h3 className="section-title !mb-4 !text-base !normal-case tracking-normal dark:text-white">
           Categories
         </h3>
@@ -101,28 +119,36 @@ export function Sidebar({
             <li key={c.id}>
               <Link
                 href={`/categories/${c.id}`}
-                className="flex items-center justify-between py-2.5 text-sm font-semibold text-news-ink hover:text-news-red dark:text-white"
+                className="flex items-center justify-between py-2.5 text-sm font-semibold text-news-ink hover:text-news-red dark:text-white dark:hover:text-news-red"
               >
                 <span>{c.name}</span>
-                <span className="text-news-muted">→</span>
+                <span className="text-news-muted dark:text-white/50" aria-hidden>
+                  →
+                </span>
               </Link>
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="bg-news-card p-5 shadow-[var(--shadow-card)] dark:bg-white/5">
+      <div className="bg-news-card p-5 shadow-[var(--shadow-card)] dark:bg-white/5 dark:ring-1 dark:ring-white/10">
         <h3 className="section-title !mb-4 !text-base !normal-case tracking-normal dark:text-white">
           Popular posts
         </h3>
         <div>
-          {popular.map((a) => (
-            <ArticleCard key={a.id} article={a} variant="compact" />
-          ))}
+          {popular.length > 0 ? (
+            popular.map((a) => (
+              <ArticleCard key={a.id} article={a} variant="compact" />
+            ))
+          ) : (
+            <p className="py-2 text-sm text-news-muted dark:text-white/70">
+              Popular posts appear as readers engage.
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="bg-news-card p-5 shadow-[var(--shadow-card)] dark:bg-white/5">
+      <div className="bg-news-card p-5 shadow-[var(--shadow-card)] dark:bg-white/5 dark:ring-1 dark:ring-white/10">
         <h3 className="section-title !mb-4 !text-base !normal-case tracking-normal dark:text-white">
           Tags
         </h3>
@@ -140,7 +166,7 @@ export function Sidebar({
             <Link
               key={tag}
               href={`/search?q=${encodeURIComponent(tag)}`}
-              className="border border-news-line px-2.5 py-1 text-xs font-semibold text-news-muted hover:border-news-red hover:text-news-red dark:border-white/15"
+              className="border border-news-line px-2.5 py-1 text-xs font-semibold text-news-muted hover:border-news-red hover:text-news-red dark:border-white/15 dark:text-white/70 dark:hover:text-news-red"
             >
               {tag}
             </Link>
@@ -148,7 +174,7 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className="flex h-64 items-center justify-center border border-dashed border-news-line bg-news-soft text-center text-xs font-semibold uppercase tracking-wider text-news-muted dark:border-white/15 dark:bg-white/5">
+      <div className="flex h-64 items-center justify-center border border-dashed border-news-line bg-news-soft text-center text-xs font-semibold uppercase tracking-wider text-news-muted dark:border-white/15 dark:bg-white/5 dark:text-white/50">
         Advertisement
         <br />
         300×250

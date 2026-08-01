@@ -1,11 +1,33 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { syncWorldNews } from "@/lib/news-sync";
+import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
 
-export async function POST() {
+/** Admin-triggered full news sync. Auth + rate-limited (feed-heavy). */
+export async function POST(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const ip = clientIpFromRequest(req);
+  const limited = rateLimit({
+    key: `admin-sync:${ip}`,
+    limit: 10,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (!limited.ok) {
+    return NextResponse.json(
+      {
+        error: `Sync rate limit. Retry in ${limited.retryAfterSec}s.`,
+        retryAfterSec: limited.retryAfterSec,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      },
+    );
+  }
+
   try {
     const result = await syncWorldNews();
     return NextResponse.json({ result });

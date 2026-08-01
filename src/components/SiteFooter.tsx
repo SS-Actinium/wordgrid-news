@@ -20,20 +20,30 @@ export function SiteFooter({
     <footer className="mt-16 bg-news-footer text-white">
       <div className="news-container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="font-display text-2xl font-black tracking-tight">
+          <p className="font-display text-2xl font-black tracking-tight text-white">
             {parts[0]}
-            <span className="text-news-red">{parts.slice(1).join(" ") || "Grid"}</span>
+            <span className="text-news-red">
+              {parts.slice(1).join(" ") || "Grid"}
+            </span>
           </p>
           <p className="mt-3 text-sm leading-relaxed text-news-footer-muted">
             {description}
           </p>
+          <p className="mt-3 text-xs leading-relaxed text-white/50">
+            Global news on a world grid — every story has coordinates.
+          </p>
           <div className="mt-5 flex gap-2">
-            {[Facebook, Twitter, Instagram, Youtube].map((Icon, i) => (
+            {[
+              { Icon: Facebook, label: "Facebook" },
+              { Icon: Twitter, label: "X / Twitter" },
+              { Icon: Instagram, label: "Instagram" },
+              { Icon: Youtube, label: "YouTube" },
+            ].map(({ Icon, label }) => (
               <a
-                key={i}
+                key={label}
                 href="#"
-                className="flex h-9 w-9 items-center justify-center bg-white/10 text-white hover:bg-news-red"
-                aria-label="Social"
+                className="flex h-9 w-9 items-center justify-center bg-white/10 text-white transition hover:bg-news-red"
+                aria-label={label}
               >
                 <Icon className="h-4 w-4" />
               </a>

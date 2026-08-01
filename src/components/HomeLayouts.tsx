@@ -31,7 +31,7 @@ function QuickLinks({
         <Link
           key={c.id}
           href={`/categories/${c.id}`}
-          className="bg-news-soft px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-news-ink hover:bg-news-red hover:text-white dark:bg-white/10 dark:text-white"
+          className="bg-news-soft px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-news-ink hover:bg-news-red hover:text-white dark:bg-white/10 dark:text-white dark:hover:bg-news-red"
         >
           {c.name}
         </Link>
@@ -40,12 +40,20 @@ function QuickLinks({
         <Link
           key={r.id}
           href={`/regions/${r.id}`}
-          className="border border-news-line px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-news-muted hover:border-news-red hover:text-news-red dark:border-white/15"
+          className="border border-news-line px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-news-muted hover:border-news-red hover:text-news-red dark:border-white/15 dark:text-white/70 dark:hover:text-news-red"
         >
           {r.name}
         </Link>
       ))}
     </section>
+  );
+}
+
+function EmptyDesk({ message }: { message: string }) {
+  return (
+    <p className="border border-dashed border-news-line bg-news-card p-6 text-sm text-news-muted dark:border-white/15 dark:bg-white/5 dark:text-white/70">
+      {message}
+    </p>
   );
 }
 
@@ -60,12 +68,24 @@ function ClassicLayout(props: Props) {
     <div className="space-y-10">
       <section className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          {hero && <ArticleCard article={hero} variant="hero" />}
+          {hero ? (
+            <ArticleCard article={hero} variant="hero" />
+          ) : (
+            <EmptyDesk message="No lead story yet — publish or wait for auto-sync to fill the front page." />
+          )}
         </div>
         <div className="flex flex-col gap-4 lg:col-span-4">
-          {heroSide.map((article) => (
-            <ArticleCard key={article.id} article={article} variant="overlay" />
-          ))}
+          {heroSide.length > 0 ? (
+            heroSide.map((article) => (
+              <ArticleCard
+                key={article.id}
+                article={article}
+                variant="overlay"
+              />
+            ))
+          ) : (
+            <EmptyDesk message="Side rails fill as more stories land on the wire." />
+          )}
         </div>
       </section>
 
@@ -75,15 +95,19 @@ function ClassicLayout(props: Props) {
         <div className="space-y-10 lg:col-span-8">
           <div>
             <SectionHeader title="Latest news" href="/search" hrefLabel="More" />
-            <div className="space-y-4">
-              {moreLatest.slice(0, 4).map((article) => (
-                <ArticleCard
-                  key={article.id}
-                  article={article}
-                  variant="horizontal"
-                />
-              ))}
-            </div>
+            {moreLatest.length > 0 ? (
+              <div className="space-y-4">
+                {moreLatest.slice(0, 4).map((article) => (
+                  <ArticleCard
+                    key={article.id}
+                    article={article}
+                    variant="horizontal"
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyDesk message="Latest desk is quiet. Check categories or regions for coverage." />
+            )}
           </div>
 
           {props.tech.length > 0 && (
@@ -180,18 +204,24 @@ function TechLayout(props: Props) {
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-news-red">
           Tech desk layout
         </p>
-        <h1 className="mt-2 text-3xl font-bold">Innovation & infrastructure</h1>
+        <h1 className="mt-2 text-3xl font-bold text-white">
+          Innovation & infrastructure
+        </h1>
         <p className="mt-2 max-w-2xl text-sm text-white/70">
           Technology-first homepage skin — dense cards for product, AI, and
           science coverage.
         </p>
       </div>
       <QuickLinks categories={props.categories} regions={props.regions} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {unique.slice(0, 9).map((article) => (
-          <ArticleCard key={article.id} article={article} />
-        ))}
-      </div>
+      {unique.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {unique.slice(0, 9).map((article) => (
+            <ArticleCard key={article.id} article={article} />
+          ))}
+        </div>
+      ) : (
+        <EmptyDesk message="Tech desk is empty — sync feeds or publish from admin." />
+      )}
       <Newsletter />
     </div>
   );
@@ -206,21 +236,31 @@ function MagazineLayout(props: Props) {
       <p className="text-center text-[11px] font-bold uppercase tracking-[0.3em] text-news-red">
         Magazine layout
       </p>
-      {lead && (
+      {lead ? (
         <div className="mx-auto max-w-4xl text-center">
           <ArticleCard article={lead} variant="featured" />
         </div>
+      ) : (
+        <EmptyDesk message="Magazine cover is waiting for a lead story." />
       )}
-      <div className="grid gap-8 md:grid-cols-2">
-        {rest.slice(0, 4).map((article) => (
-          <ArticleCard key={article.id} article={article} variant="horizontal" />
-        ))}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {rest.slice(4, 10).map((article) => (
-          <ArticleCard key={article.id} article={article} />
-        ))}
-      </div>
+      {rest.length > 0 ? (
+        <>
+          <div className="grid gap-8 md:grid-cols-2">
+            {rest.slice(0, 4).map((article) => (
+              <ArticleCard
+                key={article.id}
+                article={article}
+                variant="horizontal"
+              />
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {rest.slice(4, 10).map((article) => (
+              <ArticleCard key={article.id} article={article} />
+            ))}
+          </div>
+        </>
+      ) : null}
       <Newsletter />
     </div>
   );
@@ -236,12 +276,19 @@ function MinimalLayout(props: Props) {
         <h1 className="mt-2 font-display text-4xl font-bold text-news-ink dark:text-white">
           Today on the grid
         </h1>
+        <p className="mt-2 text-sm text-news-muted dark:text-white/70">
+          A clean reading list — coordinates and desks without the noise.
+        </p>
       </div>
-      <div className="divide-y divide-news-line border-y border-news-line dark:divide-white/10 dark:border-white/10">
-        {props.latest.slice(0, 14).map((article) => (
-          <ArticleCard key={article.id} article={article} variant="list" />
-        ))}
-      </div>
+      {props.latest.length > 0 ? (
+        <div className="divide-y divide-news-line border-y border-news-line dark:divide-white/10 dark:border-white/10">
+          {props.latest.slice(0, 14).map((article) => (
+            <ArticleCard key={article.id} article={article} variant="list" />
+          ))}
+        </div>
+      ) : (
+        <EmptyDesk message="No stories on the minimal desk yet." />
+      )}
       <Newsletter variant="inline" />
     </div>
   );

@@ -98,7 +98,7 @@
   }
 
   .prose-news p {
-    @apply mb-5 text-[17px] leading-8 text-news-body;
+    @apply mb-5 text-[17px] leading-8 text-news-body dark:text-white/85;
   }
 
   .classic-content h2 {
@@ -114,15 +114,15 @@
   }
 
   .classic-content ul {
-    @apply mb-5 list-disc space-y-1 pl-6 text-[17px] leading-8;
+    @apply mb-5 list-disc space-y-1 pl-6 text-[17px] leading-8 dark:text-white/85;
   }
 
   .classic-content ol {
-    @apply mb-5 list-decimal space-y-1 pl-6 text-[17px] leading-8;
+    @apply mb-5 list-decimal space-y-1 pl-6 text-[17px] leading-8 dark:text-white/85;
   }
 
   .classic-content blockquote {
-    @apply my-6 border-l-4 border-news-red pl-4 text-[17px] italic leading-8 text-news-muted;
+    @apply my-6 border-l-4 border-news-red pl-4 text-[17px] italic leading-8 text-news-muted dark:text-white/70;
   }
 
   .classic-content a {

@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+/** Only true when this page is built/served in non-production (Next inlines NODE_ENV). */
+const showDevHint = process.env.NODE_ENV !== "production";
+
 export default function AdminLoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -38,8 +41,16 @@ export default function AdminLoginPage() {
         Admin login
       </h1>
       <p className="mt-2 text-sm text-news-muted">
-        Default local password: <code className="text-news-red">admin123</code>
-        . Set <code>ADMIN_PASSWORD</code> in production.
+        {showDevHint ? (
+          <>
+            Local default password:{" "}
+            <code className="text-news-red">admin123</code>. Set{" "}
+            <code>ADMIN_PASSWORD</code> and <code>ADMIN_SECRET</code> before
+            production.
+          </>
+        ) : (
+          <>Enter the administrator password to continue.</>
+        )}
       </p>
       <form
         onSubmit={onSubmit}
@@ -54,6 +65,7 @@ export default function AdminLoginPage() {
             className="mt-1 h-11 w-full border border-news-line px-3 text-sm outline-none focus:border-news-red dark:border-white/15 dark:bg-black/30 dark:text-white"
             autoFocus
             required
+            autoComplete="current-password"
           />
         </label>
         {error && <p className="text-sm text-news-red">{error}</p>}

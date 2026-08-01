@@ -41,9 +41,19 @@ async function readJson<T>(file: string, fallback: T): Promise<T> {
   }
 }
 
+/** Atomic write: temp file + rename (audit: non-atomic write fix). */
 async function writeJson<T>(file: string, data: T) {
   await ensureDataDir();
-  await fs.writeFile(file, JSON.stringify(data, null, 2), "utf8");
+  const payload = JSON.stringify(data, null, 2);
+  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  await fs.writeFile(tmp, payload, "utf8");
+  try {
+    await fs.rename(tmp, file);
+  } catch {
+    // Windows: replace existing
+    await fs.copyFile(tmp, file);
+    await fs.unlink(tmp).catch(() => {});
+  }
 }
 
 export function slugify(input: string): string {

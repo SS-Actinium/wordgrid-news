@@ -1,25 +1,64 @@
 import { NextResponse } from "next/server";
 import { ensureFreshNews, syncWorldNews } from "@/lib/news-sync";
+import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
 
 /**
- * Public/cron endpoint for automatic world news updates.
- * Optional: set CRON_SECRET and pass ?secret=... or Authorization: Bearer ...
- * Without secret (dev), allows sync for local use.
+ * News sync endpoint.
+ * Production: CRON_SECRET required (Bearer or header).
+ * Development: open for local AutoSync, still rate-limited.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const secret =
-    url.searchParams.get("secret") ||
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  const cronSecret = process.env.CRON_SECRET;
-  const force = url.searchParams.get("force") === "1";
+    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+    req.headers.get("x-cron-secret") ||
+    // Query secret supported only in development (avoid log leakage in prod)
+    (process.env.NODE_ENV !== "production"
+      ? url.searchParams.get("secret")
+      : null);
 
-  if (cronSecret && secret !== cronSecret) {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  const force = url.searchParams.get("force") === "1";
+  const isProd = process.env.NODE_ENV === "production";
+
+  if (isProd) {
+    if (!cronSecret) {
+      return NextResponse.json(
+        {
+          error:
+            "CRON_SECRET must be set in production. Sync endpoint is locked.",
+        },
+        { status: 503 },
+      );
+    }
+    if (secret !== cronSecret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } else if (cronSecret && secret && secret !== cronSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const ip = clientIpFromRequest(req);
+  const limited = rateLimit({
+    key: `news-sync:${ip}`,
+    limit: force ? 6 : 30,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Rate limited", retryAfterSec: limited.retryAfterSec },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      },
+    );
+  }
+
+  // Public AutoSync may not force; force requires secret in prod (already gated)
+  const allowForce = force && (!isProd || Boolean(cronSecret && secret === cronSecret));
+
   try {
-    const result = force
+    const result = allowForce
       ? await syncWorldNews()
       : (await ensureFreshNews(false)) || {
           ok: true,
@@ -32,11 +71,8 @@ export async function GET(req: Request) {
           skippedDueToInterval: true,
         };
     return NextResponse.json({ result });
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Sync failed" },
-      { status: 500 },
-    );
+  } catch {
+    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
   }
 }
 

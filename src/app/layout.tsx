@@ -8,8 +8,8 @@ import {
   regions,
   SITE,
 } from "@/lib/articles";
-import { ensureFreshNews } from "@/lib/news-sync";
 import { buildOrganizationJsonLd, DEFAULT_SITE_SEO } from "@/lib/seo";
+import { safeJsonLd } from "@/lib/sanitize";
 import { getSettings } from "@/lib/store";
 import "./globals.css";
 
@@ -69,8 +69,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  await ensureFreshNews(false).catch(() => null);
-
+  // Audit P0: RSS sync removed from request path (AutoSync + cron only)
   const [settings, latestRaw] = await Promise.all([
     getSettings(),
     getLatestArticles(24),
@@ -93,9 +92,10 @@ export default async function RootLayout({
       <body className="min-h-screen font-sans">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(orgLd) }}
         />
         <ThemeProvider>
+          {/* Dev AutoSync is rate-limited; prod requires CRON_SECRET on server cron */}
           <AutoSync />
           <PublicChrome
             siteName={settings.siteName || SITE.name}

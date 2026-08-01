@@ -1,3 +1,5 @@
+import { sanitizeContentBlock, sanitizeHtml } from "./sanitize";
+
 /** Convert stored paragraphs (plain or HTML fragments) into classic-editor HTML. */
 export function paragraphsToHtml(paragraphs: string[]): string {
   if (!paragraphs?.length) return "";
@@ -5,10 +7,11 @@ export function paragraphsToHtml(paragraphs: string[]): string {
     .map((p) => p.trim())
     .filter(Boolean)
     .map((p) => {
-      if (/^<(p|h[1-6]|ul|ol|blockquote|div|table)\b/i.test(p)) return p;
-      // Already multi-tag HTML block
+      if (/^<(p|h[1-6]|ul|ol|blockquote|div|table)\b/i.test(p)) {
+        return sanitizeHtml(p);
+      }
       if (/<\/?(p|h[1-6]|ul|ol|li|blockquote)\b/i.test(p) && p.includes("</")) {
-        return p;
+        return sanitizeHtml(p);
       }
       return `<p>${escapeHtml(p)}</p>`;
     })
@@ -17,10 +20,9 @@ export function paragraphsToHtml(paragraphs: string[]): string {
 
 /** Convert classic-editor HTML into content[] for storage. */
 export function htmlToParagraphs(html: string): string[] {
-  const raw = (html || "").trim();
+  const raw = sanitizeHtml((html || "").trim());
   if (!raw) return [];
 
-  // Prefer splitting on block tags
   if (typeof DOMParser !== "undefined") {
     try {
       const doc = new DOMParser().parseFromString(
@@ -40,17 +42,23 @@ export function htmlToParagraphs(html: string): string[] {
             if (child.nodeType !== Node.ELEMENT_NODE) continue;
             const node = child as Element;
             const tag = node.tagName.toLowerCase();
-            if (["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote"].includes(tag)) {
+            if (
+              ["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote"].includes(
+                tag,
+              )
+            ) {
               const inner = node.innerHTML.trim();
               if (inner) {
-                // Keep light formatting inside paragraphs
                 const text = node.textContent?.trim() || "";
                 const hasInline =
                   /<(strong|em|b|i|a|u|span|br)\b/i.test(inner);
-                blocks.push(hasInline ? `<${tag}>${inner}</${tag}>` : text);
+                const block = hasInline
+                  ? sanitizeHtml(`<${tag}>${inner}</${tag}>`)
+                  : text;
+                if (block) blocks.push(block);
               }
             } else if (tag === "ul" || tag === "ol") {
-              blocks.push(node.outerHTML);
+              blocks.push(sanitizeHtml(node.outerHTML));
             } else if (tag === "div" || tag === "section") {
               walk(node);
             } else {
@@ -60,14 +68,13 @@ export function htmlToParagraphs(html: string): string[] {
           }
         };
         walk(root);
-        if (blocks.length) return blocks;
+        if (blocks.length) return blocks.map(sanitizeContentBlock).filter(Boolean);
       }
     } catch {
       /* fall through */
     }
   }
 
-  // Server-safe / fallback: strip tags into plain paragraphs
   return raw
     .replace(/<\/(p|h[1-6]|blockquote|div|li)>/gi, "\n")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -85,13 +92,15 @@ export function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Render content blocks safely for public pages. */
+/** Render content blocks safely for public pages (always sanitized). */
 export function contentBlocksToHtml(content: string[]): string {
   return content
     .map((block) => {
       const b = block.trim();
       if (!b) return "";
-      if (/^<(p|h[1-6]|ul|ol|blockquote|div|table)\b/i.test(b)) return b;
+      if (/^<(p|h[1-6]|ul|ol|blockquote|div|table)\b/i.test(b)) {
+        return sanitizeHtml(b);
+      }
       return `<p>${escapeHtml(b)}</p>`;
     })
     .join("\n");
@@ -101,7 +110,7 @@ export function contentBlocksToHtml(content: string[]): string {
 export function contentToPlainText(content: string | string[]): string {
   const html = Array.isArray(content)
     ? contentBlocksToHtml(content)
-    : content;
+    : sanitizeHtml(content);
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")

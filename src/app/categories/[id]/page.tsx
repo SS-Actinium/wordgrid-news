@@ -41,20 +41,44 @@ export default async function CategoryDetailPage({ params }: Props) {
         <div>
           <Link
             href="/categories"
-            className="text-xs font-bold uppercase tracking-wider text-news-muted hover:text-news-red"
+            className="text-xs font-bold uppercase tracking-wider text-news-muted hover:text-news-red dark:text-white/60 dark:hover:text-news-red"
           >
             ← All categories
           </Link>
-          <h1 className="mt-3 font-display text-3xl font-bold dark:text-white sm:text-4xl">
+          <h1 className="mt-3 font-display text-3xl font-bold text-news-ink dark:text-white sm:text-4xl">
             {category.name}
           </h1>
-          <p className="mt-3 text-news-muted">{category.description}</p>
+          <p className="mt-3 text-sm leading-relaxed text-news-muted dark:text-white/70">
+            {category.description}
+            {stories.length > 0 ? (
+              <>
+                {" "}
+                ·{" "}
+                <span className="font-semibold text-news-ink dark:text-white">
+                  {stories.length}
+                </span>{" "}
+                {stories.length === 1 ? "story" : "stories"}
+              </>
+            ) : null}
+          </p>
         </div>
 
         {stories.length === 0 ? (
-          <p className="border border-news-line bg-news-card p-8 text-news-muted dark:border-white/10 dark:bg-white/5">
-            No stories in this category yet.
-          </p>
+          <div className="border border-dashed border-news-line bg-news-card p-8 dark:border-white/15 dark:bg-white/5">
+            <p className="font-semibold text-news-ink dark:text-white">
+              No stories in this category yet
+            </p>
+            <p className="mt-2 text-sm text-news-muted dark:text-white/70">
+              Auto-sync and the admin desk will fill this section as coverage
+              lands.
+            </p>
+            <Link
+              href="/categories"
+              className="mt-4 inline-flex text-sm font-bold text-news-red hover:underline"
+            >
+              Browse all categories
+            </Link>
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {stories.map((article) => (

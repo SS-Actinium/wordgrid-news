@@ -4,12 +4,32 @@ import {
   deleteLocalUpload,
   generateArticleImage,
 } from "@/lib/ai/generate-image";
+import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
 import { hasGeminiKey } from "@/lib/secrets";
 
 export async function POST(req: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const ip = clientIpFromRequest(req);
+  const limited = rateLimit({
+    key: `ai-image:${ip}`,
+    limit: 15,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) {
+    return NextResponse.json(
+      {
+        error: `Image generation rate limit. Retry in ${limited.retryAfterSec}s.`,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      },
+    );
+  }
+
   try {
     if (!(await hasGeminiKey())) {
       return NextResponse.json(
@@ -22,12 +42,14 @@ export async function POST(req: Request) {
       );
     }
     const body = await req.json();
-    const prompt = String(body.prompt || body.title || "").trim();
+    const prompt = String(body.prompt || body.title || "")
+      .trim()
+      .slice(0, 1000);
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
     const result = await generateArticleImage(prompt, {
-      articleTitle: body.title ? String(body.title) : undefined,
+      articleTitle: body.title ? String(body.title).slice(0, 300) : undefined,
     });
     return NextResponse.json({ result });
   } catch (err) {

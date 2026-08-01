@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "About",
-  description: `About ${SITE.name} — newspaper & magazine news platform.`,
+  description: `About ${SITE.name} — global news on a world grid.`,
 };
 
 export const dynamic = "force-dynamic";
@@ -22,17 +22,25 @@ export default async function AboutPage() {
             {SITE.tagline}
           </p>
           <p>
-            <strong>{SITE.name}</strong> is a modern newspaper and magazine
-            style news platform with an admin desk, automatic world-news sync,
-            and coordinates on every story.
+            <strong className="text-news-ink dark:text-white">{SITE.name}</strong>{" "}
+            is a newspaper-style news platform built around one idea:{" "}
+            <em>global news belongs on a world grid</em>. Every story carries
+            coordinates, region, and desk context so readers can see not only
+            what happened, but where it sits on the map.
           </p>
           <p>
             Live wires are ingested from free public RSS feeds (BBC, NPR, The
-            Guardian, Al Jazeera, and more). Editors can still add, edit, or
-            delete stories manually from the admin panel.
+            Guardian, Al Jazeera, and more). Editors can still write, edit, or
+            pull stories from the admin desk — the grid stays human-led with
+            machine assistance, not the other way around.
           </p>
-          <p>
-            Domain:{" "}
+          <p className="text-sm text-news-muted dark:text-white/70">
+            Built as an independent desk project by{" "}
+            <span className="font-semibold text-news-ink dark:text-white">
+              Smit Joshi
+            </span>
+            , with a production bar inspired by family systems work in AI and
+            media tooling. Domain:{" "}
             <span className="font-semibold text-news-red">{SITE.domain}</span>
           </p>
         </div>
@@ -40,20 +48,20 @@ export default async function AboutPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {[
             {
-              t: "Admin CMS",
-              d: "Add, edit, and remove stories with full control over fields and status.",
+              t: "Coordinate-first stories",
+              d: "Lat/lng, city, and region on every post — the live world grid is the product surface, not a widget.",
             },
             {
-              t: "Auto world sync",
-              d: "RSS ingestion keeps the homepage fresh without human input.",
+              t: "Admin CMS + auto sync",
+              d: "Full editorial control with RSS ingestion that keeps the homepage fresh without babysitting.",
             },
             {
-              t: "4 homepage skins",
-              d: "Classic, Tech, Magazine, and Minimal layouts switchable in admin.",
+              t: "Four homepage skins",
+              d: "Classic, Tech, Magazine, and Minimal layouts — switchable from admin for different reading moods.",
             },
             {
-              t: "Dark mode + mega menu",
-              d: "Reader controls and DNews-style section navigation built in.",
+              t: "Reader-first chrome",
+              d: "Dark mode, section navigation, search, and region desks built for daily newspaper habits.",
             },
           ].map((card) => (
             <div
@@ -63,7 +71,9 @@ export default async function AboutPage() {
               <h2 className="font-bold text-news-ink dark:text-white">
                 {card.t}
               </h2>
-              <p className="mt-2 text-sm text-news-muted">{card.d}</p>
+              <p className="mt-2 text-sm leading-relaxed text-news-muted dark:text-white/70">
+                {card.d}
+              </p>
             </div>
           ))}
         </div>
@@ -76,10 +86,10 @@ export default async function AboutPage() {
             Back to homepage
           </Link>
           <Link
-            href="/admin"
+            href="/regions"
             className="inline-flex h-11 items-center border border-news-line px-6 text-sm font-bold uppercase tracking-wide text-news-ink hover:border-news-red hover:text-news-red dark:border-white/15 dark:text-white"
           >
-            Open admin
+            Explore regions
           </Link>
         </div>
       </div>

@@ -17,7 +17,7 @@ export function SectionHeader({
       {href && (
         <Link
           href={href}
-          className="mb-1 inline-flex shrink-0 items-center gap-1 text-xs font-bold uppercase tracking-wider text-news-muted hover:text-news-red"
+          className="mb-1 inline-flex shrink-0 items-center gap-1 text-xs font-bold uppercase tracking-wider text-news-muted hover:text-news-red dark:text-white/60 dark:hover:text-news-red"
         >
           {hrefLabel}
           <ArrowRight className="h-3.5 w-3.5" />

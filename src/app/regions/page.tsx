@@ -30,31 +30,43 @@ export default async function RegionsPage() {
     <div className="grid gap-8 lg:grid-cols-12">
       <div className="lg:col-span-8">
         <SectionHeader title="World regions" />
-        <p className="mb-6 text-news-muted">
+        <p className="mb-6 max-w-2xl text-sm leading-relaxed text-news-muted dark:text-white/70">
           Jump into a geographic desk. Each region aggregates the latest stories
-          with local coordinates and context.
+          with local coordinates — the same cells you see on the live world grid.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          {regions.map((region) => (
-            <Link
-              key={region.id}
-              href={`/regions/${region.id}`}
-              className="news-card group p-6 dark:bg-white/5"
-            >
-              <div className="flex items-center justify-between">
-                <span className="flex h-10 w-10 items-center justify-center bg-news-red text-sm font-black text-white">
-                  {region.short}
+          {regions.map((region) => {
+            const count = countMap[region.id] || 0;
+            return (
+              <Link
+                key={region.id}
+                href={`/regions/${region.id}`}
+                className="news-card group flex flex-col p-6 transition hover:shadow-[var(--shadow-card-hover)] dark:bg-white/5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span
+                    className="flex h-11 w-11 items-center justify-center text-sm font-black text-white shadow-sm"
+                    style={{ backgroundColor: region.accent || "#e31c25" }}
+                    aria-hidden
+                  >
+                    {region.short}
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-news-muted dark:text-white/60">
+                    {count} {count === 1 ? "post" : "posts"}
+                  </span>
+                </div>
+                <h2 className="mt-4 text-xl font-bold text-news-ink group-hover:text-news-red dark:text-white">
+                  {region.name}
+                </h2>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-news-muted dark:text-white/70">
+                  {region.description}
+                </p>
+                <span className="mt-4 text-xs font-bold uppercase tracking-wider text-news-red opacity-0 transition group-hover:opacity-100">
+                  Open region →
                 </span>
-                <span className="text-xs font-semibold uppercase tracking-wide text-news-muted">
-                  {countMap[region.id] || 0} posts
-                </span>
-              </div>
-              <h2 className="mt-4 text-xl font-bold group-hover:text-news-red dark:text-white">
-                {region.name}
-              </h2>
-              <p className="mt-2 text-sm text-news-muted">{region.description}</p>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
       <div className="lg:col-span-4">

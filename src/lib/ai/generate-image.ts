@@ -135,12 +135,41 @@ async function extractAndSaveImage(
   };
 }
 
-/** Delete a local uploaded image if it lives under /uploads */
+/**
+ * Delete a local uploaded image only if it resolves under public/uploads
+ * (audit HIGH-05 path traversal fix).
+ */
 export async function deleteLocalUpload(imageUrl: string): Promise<boolean> {
-  if (!imageUrl?.startsWith("/uploads/")) return false;
-  const file = path.join(process.cwd(), "public", imageUrl);
+  if (!imageUrl || typeof imageUrl !== "string") return false;
+  // Disallow any path tricks early
+  if (
+    !imageUrl.startsWith("/uploads/") ||
+    imageUrl.includes("..") ||
+    imageUrl.includes("\0") ||
+    imageUrl.includes("\\")
+  ) {
+    return false;
+  }
+
+  const uploadsRoot = path.resolve(process.cwd(), "public", "uploads");
+  const relative = imageUrl.replace(/^\/uploads\//, "");
+  // Only allow a single path segment filename
+  const base = path.basename(relative);
+  if (!base || base !== relative.replace(/\\/g, "/").split("/").pop()) {
+    return false;
+  }
+  if (!/^[\w.-]+$/i.test(base)) return false;
+
+  const resolved = path.resolve(uploadsRoot, base);
+  if (
+    resolved !== uploadsRoot &&
+    !resolved.startsWith(uploadsRoot + path.sep)
+  ) {
+    return false;
+  }
+
   try {
-    await fs.unlink(file);
+    await fs.unlink(resolved);
     return true;
   } catch {
     return false;
