@@ -1,0 +1,37 @@
+/* WordPress Classic Editor chrome around TinyMCE */
+.wp-classic-editor .tox-tinymce {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.wp-classic-editor .tox-editor-header {
+  box-shadow: none !important;
+  border-bottom: 1px solid #c3c4c7 !important;
+  background: #f6f7f7 !important;
+  padding: 4px 4px 0 !important;
+}
+
+.wp-classic-editor .tox-toolbar-overlord,
+.wp-classic-editor .tox-toolbar__primary {
+  background: #f6f7f7 !important;
+}
+
+.wp-classic-editor .tox-statusbar {
+  border-top: 1px solid #c3c4c7 !important;
+  background: #f6f7f7 !important;
+}
+
+.wp-classic-editor .tox .tox-tbtn:hover {
+  background: #fff !important;
+}
+
+.wp-classic-editor .tox .tox-tbtn--enabled,
+.wp-classic-editor .tox .tox-tbtn--enabled:hover {
+  background: #fff !important;
+}
+
+.wp-classic-editor .tox-menubar {
+  background: #f6f7f7 !important;
+  border-bottom: 1px solid #dcdcde !important;
+  padding: 0 4px !important;
+}
