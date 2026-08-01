@@ -169,5 +169,10 @@ See [CONTRIBUTORS.md](./CONTRIBUTORS.md).
 
 ## Docs
 
-- [Enterprise audit + remediation status](./docs/ENTERPRISE-AUDIT-REPORT.md)
+- [Enterprise audit + remediation status (v1)](./docs/ENTERPRISE-AUDIT-REPORT.md)
+- [Enterprise re-audit post-remediation (v2)](./docs/ENTERPRISE-AUDIT-REPORT-V2.md)
 - [Agency operating notes](./AGENTS.md)
+
+---
+
+**Repo:** [github.com/SS-Actinium/wordgrid-news](https://github.com/SS-Actinium/wordgrid-news) · **Version:** 0.2.0 · **Updated:** 2026-08-02

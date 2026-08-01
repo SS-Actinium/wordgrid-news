@@ -12,6 +12,7 @@
 | **Target posture** | Production for large-scale public traffic (“millions of users”) |
 | **Original audit verdict** | **Not Ready for Production** (millions-scale) |
 | **Current posture** | **Viewer-ready MVP hardened** — suitable for single-node demo / closed pilot when env secrets are set; **not** multi-million user or multi-instance enterprise production |
+| **Re-audit** | **WG-AUDIT-2026-08-02-002** → see `docs/ENTERPRISE-AUDIT-REPORT-V2.md` (scores: security ~61, overall ~54, viewer readiness ~72, scale readiness ~28) |
 
 ---
 

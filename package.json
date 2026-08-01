@@ -1,6 +1,6 @@
 {
   "name": "wordgrid-news",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "World Grid — global news on an interactive world grid",
   "scripts": {
