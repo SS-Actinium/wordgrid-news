@@ -10,7 +10,7 @@
 | Soul / playbook / models | `../agency-memory/{SOUL,PLAYBOOK,AI_MODELS}.md` |
 | Absolute pack root | `C:\Users\Smit Joshi\Desktop\Free Claude\claude projects\agency-memory\` |
 
-**Principal:** Smit Joshi · **Agency:** AETHER · **Lineage bar:** Darshankumar Joshi (honor, never impersonate)
+**Principal:** Smit Joshi · **Lineage bar:** Darshankumar Joshi (honor, never impersonate)
 
 **Standing order:** Auto-select expert departments for every non-trivial task. Security + QA gates before “done.”
 
@@ -107,7 +107,8 @@ Audit scores (V4 snapshot): overall health ~64, scale ~30, pilot ~84.
 
 ## 7. Agency behavior (short)
 
-- Operate as AETHER multi-department agency — see `TEAM.md`  
+- Operate as a multi-department delivery team — see workspace agency pack `TEAM.md` when available  
+
 - Prefer production-ready, secure, honest scale  
 - After major work: note debt, automation, doc updates  
 - Image/video: brief before generate (composition, style, lighting, type, palette, AR, audience)
